@@ -40,29 +40,32 @@ type Client struct {
 	serverDisconnect closer
 	clientDisconnect closer
 
-	onConnect func()
+	// OnConnect sends a signal when the connection to the IRC has been established, only gets sent once, should be closed after receiving
+	OnConnect chan struct{}
 	onMessage func(msg *Message, err error)
 }
 
 // New returns a new client
 func New(user, oauth string) *Client {
 	return &Client{
-		user:   user,
-		oauth:  oauth,
-		UseTLS: true,
-		read:   make(chan string, ReadBuffer),
-		write:  make(chan []byte, WriteBuffer),
+		user:      user,
+		oauth:     oauth,
+		UseTLS:    true,
+		read:      make(chan string, ReadBuffer),
+		write:     make(chan []byte, WriteBuffer),
+		OnConnect: make(chan struct{}, 1),
 	}
 }
 
 // NewAnon returns an anonymous client, useful for testing, or small read-only bots
 func NewAnon() *Client {
 	return &Client{
-		user:   "justinfan77777",
-		oauth:  "oauth",
-		UseTLS: true,
-		read:   make(chan string, ReadBuffer),
-		write:  make(chan []byte, WriteBuffer),
+		user:      "justinfan77777",
+		oauth:     "oauth",
+		UseTLS:    true,
+		read:      make(chan string, ReadBuffer),
+		write:     make(chan []byte, WriteBuffer),
+		OnConnect: make(chan struct{}, 1),
 	}
 }
 
@@ -103,6 +106,9 @@ func (c *Client) Connect() (err error) {
 	wg.Add(2)
 	go c.startReader(conn, &wg)
 	go c.startWriter(conn, &wg)
+
+	// Send signal when the client has connected
+	c.OnConnect <- struct{}{}
 
 	// blocks here, until server disconnects or c.Disconnect() is called,
 	//the error we get from here tells us whether the client disconnected, or the server disconnected us
@@ -209,11 +215,6 @@ func (c *Client) startHandler() error {
 			return ErrClientDisconnected
 		}
 	}
-}
-
-// OnConnect sets a callback that runs when the client has established a connection
-func (c *Client) OnConnect(cb func()) {
-	c.onConnect = cb
 }
 
 // OnMessage sets a callback to handle the raw incoming IRC messages
