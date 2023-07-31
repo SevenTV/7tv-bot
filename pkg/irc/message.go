@@ -1,5 +1,9 @@
 package irc
 
+import (
+	"strings"
+)
+
 // MessageType is a type with the underlying type int, it is used with enum constants defined below to help classify incoming IRC messages
 type MessageType int
 
@@ -12,43 +16,86 @@ const (
 	Ping
 	// Reconnect when this is sent by the IRC, the server is about to disconnect the client, usually means there's a server update
 	Reconnect
-	// Part can mean the bot got banned from a channel, usually means a user disconnected
+	// Join means the IRC added the given channel to the current active subscriptions
+	Join
+	// Part means the bot has been removed from the given channel, could be a timeout/ban, or could be because we asked the IRC to disconnect us
 	Part
 	// PrivMessage is a chat message sent in a Twitch channel
 	PrivMessage
+	// Cap is a message pertaining to the twitch-specific capabilities requested on connect
+	Cap
 )
 
-// Message contains some methods to help with the correct handling of incoming IRC messages
-type Message interface {
-	// GetType returns the message type, as defined with the MessageType type and its constants
-	GetType() MessageType
-	// Raw returns the raw IRC message as a slice of bytes
-	Raw() []byte
-	// String returns the raw IRC message as a string
-	String() string
-}
-
-type message struct {
-	raw         []byte
+type Message struct {
+	raw         string
 	messageType MessageType
 }
 
+func parseMessage(data string) (*Message, error) {
+	m := &Message{raw: data}
+
+	var err error
+	m.messageType, err = parseMessageType(data)
+
+	return m, err
+}
+
+// String returns the raw IRC message as a string
+func (m *Message) String() string {
+	return m.raw
+}
+
 // GetType returns message type, if it has not yet been set, it parses the message to find its type and sets m.messageType for future reference
-func (m message) GetType() MessageType {
+func (m *Message) GetType() MessageType {
 	// return stored type if it has already been parsed
 	if m.messageType != Unset {
 		return m.messageType
 	}
 
-	// TODO: high priority! implement, needed for PING
+	// parse type if not set yet, with normal use this shouldn't happen, but you never know
+	m.messageType, _ = parseMessageType(m.String())
 
 	return m.messageType
 }
 
-func (m message) Raw() []byte {
-	return m.raw
+func parseMessageType(rawMessage string) (MessageType, error) {
+	var i int
+	split := strings.Split(rawMessage, " ")
+
+	if strings.HasPrefix(rawMessage, "@") {
+		i++
+	}
+
+	if i >= len(split) {
+		return Unknown, ErrPartialMessage
+	}
+
+	if strings.HasPrefix(split[i], ":") {
+		i++
+	}
+
+	if i >= len(split) {
+		return Unknown, ErrPartialMessage
+	}
+
+	return parseType(split[i]), nil
 }
 
-func (m message) String() string {
-	return string(m.raw)
+func parseType(str string) MessageType {
+	switch str {
+	case "PING":
+		return Ping
+	case "RECONNECT":
+		return Reconnect
+	case "JOIN":
+		return Join
+	case "PART":
+		return Part
+	case "PRIVMSG":
+		return PrivMessage
+	case "CAP":
+		return Cap
+	default:
+		return Unknown
+	}
 }
