@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/textproto"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -36,8 +37,8 @@ type Client struct {
 	read  chan string
 	write chan []byte
 
-	// TODO: convert to closer
-	clientDisconnect chan struct{}
+	serverDisconnect closer
+	clientDisconnect closer
 
 	onConnect func()
 	onMessage func(msg *Message, err error)
@@ -46,24 +47,22 @@ type Client struct {
 // New returns a new client
 func New(user, oauth string) *Client {
 	return &Client{
-		user:             user,
-		oauth:            oauth,
-		UseTLS:           true,
-		read:             make(chan string, ReadBuffer),
-		write:            make(chan []byte, WriteBuffer),
-		clientDisconnect: make(chan struct{}, 0),
+		user:   user,
+		oauth:  oauth,
+		UseTLS: true,
+		read:   make(chan string, ReadBuffer),
+		write:  make(chan []byte, WriteBuffer),
 	}
 }
 
 // NewAnon returns an anonymous client, useful for testing, or small read-only bots
 func NewAnon() *Client {
 	return &Client{
-		user:             "justinfan4321",
-		oauth:            "oauth",
-		UseTLS:           true,
-		read:             make(chan string, ReadBuffer),
-		write:            make(chan []byte, WriteBuffer),
-		clientDisconnect: make(chan struct{}, 0),
+		user:   "justinfan4321",
+		oauth:  "oauth",
+		UseTLS: true,
+		read:   make(chan string, ReadBuffer),
+		write:  make(chan []byte, WriteBuffer),
 	}
 }
 
@@ -87,11 +86,12 @@ func (c *Client) Connect() (err error) {
 		return err
 	}
 
-	if len(c.capabilities) > 0 {
-		err = c.requestCapabilities(conn)
-		if err != nil {
-			return err
-		}
+	c.clientDisconnect.reset()
+	c.serverDisconnect.reset()
+
+	err = c.requestCapabilities(conn)
+	if err != nil {
+		return err
 	}
 
 	err = c.login(conn)
@@ -99,10 +99,29 @@ func (c *Client) Connect() (err error) {
 		return err
 	}
 
-	go c.startReader(conn)
-	go c.startWriter(conn)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go c.startReader(conn, &wg)
+	go c.startWriter(conn, &wg)
 
-	return c.startHandler()
+	// blocks here, until server disconnects or c.Disconnect() is called,
+	//the error we get from here tells us whether the client disconnected, or the server disconnected us
+	err = c.startHandler()
+
+	// close all channels & connections to make sure there's no memory leaks
+	conn.Close()
+	c.serverDisconnect.close()
+	c.clientDisconnect.close()
+
+	// Wait until both reader & writer are closed
+	wg.Wait()
+
+	return
+}
+
+// Disconnect closes the IRC connection
+func (c *Client) Disconnect() {
+	c.clientDisconnect.close()
 }
 
 // Join makes the client join the passed channels
@@ -116,6 +135,9 @@ func (c *Client) Depart(channels ...string) {
 }
 
 func (c *Client) requestCapabilities(conn net.Conn) error {
+	if len(c.capabilities) == 0 {
+		return nil
+	}
 	_, err := conn.Write([]byte("CAP REQ :" + strings.Join(c.capabilities, " ") + "\r\n"))
 	return err
 }
@@ -129,9 +151,10 @@ func (c *Client) login(conn net.Conn) error {
 	return err
 }
 
-func (c *Client) startReader(reader io.Reader) {
+func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
 	defer func() {
-		c.clientDisconnect <- struct{}{}
+		c.serverDisconnect.close()
+		wg.Done()
 	}()
 
 	lineReader := textproto.NewReader(bufio.NewReader(reader))
@@ -139,7 +162,7 @@ func (c *Client) startReader(reader io.Reader) {
 	for {
 		line, err := lineReader.ReadLine()
 		if err != nil {
-			// return will send a signal through c.clientDisconnect
+			// return will close c.serverDisconnect
 			return
 		}
 
@@ -149,10 +172,16 @@ func (c *Client) startReader(reader io.Reader) {
 	}
 }
 
-func (c *Client) startWriter(conn net.Conn) {
-	// TODO: implement the (as of yet non-existent) connection closer
+func (c *Client) startWriter(conn net.Conn, wg *sync.WaitGroup) {
+	defer func() {
+		wg.Done()
+	}()
 	for {
 		select {
+		case <-c.clientDisconnect.channel:
+			return
+		case <-c.serverDisconnect.channel:
+			return
 		case msg := <-c.write:
 			c.writeMessage(conn, msg)
 		}
@@ -164,8 +193,8 @@ var newLine = []byte("\r\n")
 func (c *Client) writeMessage(writer io.WriteCloser, data []byte) {
 	_, err := writer.Write(append(data, newLine...))
 	if err != nil {
-		// closes underlying connection, making the reader send disconnect signal (not ideal, will be fixed)
 		writer.Close()
+		c.serverDisconnect.close()
 	}
 }
 
@@ -174,7 +203,9 @@ func (c *Client) startHandler() error {
 		select {
 		case line := <-c.read:
 			c.onMessage(parseMessage(line))
-		case <-c.clientDisconnect:
+		case <-c.serverDisconnect.channel:
+			return ErrServerDisconnect
+		case <-c.clientDisconnect.channel:
 			return ErrClientDisconnected
 		}
 	}
@@ -196,4 +227,26 @@ func (c *Client) send(line []byte) {
 
 func (c *Client) sendString(line string) {
 	c.send([]byte(line))
+}
+
+// closer is used to keep track of when we disconnect, whether it be by the server or the client
+type closer struct {
+	mx      sync.Mutex
+	o       *sync.Once
+	channel chan struct{}
+}
+
+func (c *closer) reset() {
+	c.mx.Lock()
+	c.o = &sync.Once{}
+	c.channel = make(chan struct{})
+	c.mx.Unlock()
+}
+
+func (c *closer) close() {
+	c.mx.Lock()
+	c.o.Do(func() {
+		close(c.channel)
+	})
+	c.mx.Unlock()
 }
