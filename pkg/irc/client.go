@@ -58,7 +58,7 @@ func New(user, oauth string) *Client {
 // NewAnon returns an anonymous client, useful for testing, or small read-only bots
 func NewAnon() *Client {
 	return &Client{
-		user:   "justinfan4321",
+		user:   "justinfan77777",
 		oauth:  "oauth",
 		UseTLS: true,
 		read:   make(chan string, ReadBuffer),
