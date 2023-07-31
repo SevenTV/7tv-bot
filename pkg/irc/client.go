@@ -129,8 +129,8 @@ func (c *Client) Join(channels ...string) {
 	c.sendString("JOIN " + appendChannels(channels...))
 }
 
-// Depart makes the client leave the passed channels
-func (c *Client) Depart(channels ...string) {
+// Part makes the client leave the passed channels
+func (c *Client) Part(channels ...string) {
 	c.sendString("PART " + appendChannels(channels...))
 }
 
