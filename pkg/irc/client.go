@@ -2,6 +2,7 @@ package irc
 
 import (
 	"bufio"
+	"crypto/tls"
 	"io"
 	"net"
 	"net/textproto"
@@ -29,6 +30,7 @@ type Client struct {
 
 	capabilities []string
 
+	// UseTLS determines whether the IRC connects with or without TLS, needs to be set before you call Connect, default = true
 	UseTLS bool
 
 	read  chan string
@@ -46,6 +48,7 @@ func New(user, oauth string) *Client {
 	return &Client{
 		user:             user,
 		oauth:            oauth,
+		UseTLS:           true,
 		read:             make(chan string, ReadBuffer),
 		write:            make(chan []byte, WriteBuffer),
 		clientDisconnect: make(chan struct{}, 0),
@@ -57,6 +60,7 @@ func NewAnon() *Client {
 	return &Client{
 		user:             "justinfan4321",
 		oauth:            "oauth",
+		UseTLS:           true,
 		read:             make(chan string, ReadBuffer),
 		write:            make(chan []byte, WriteBuffer),
 		clientDisconnect: make(chan struct{}, 0),
@@ -70,11 +74,15 @@ func (c *Client) WithCapabilities(caps ...string) *Client {
 }
 
 // Connect starts the IRC connection
-func (c *Client) Connect() error {
-	// TODO: TLS support
+func (c *Client) Connect() (err error) {
 	dialer := &net.Dialer{KeepAlive: time.Second * 10}
+	var conn net.Conn
+	if c.UseTLS {
+		conn, err = tls.DialWithDialer(dialer, "tcp", AddressTLS, &tls.Config{MinVersion: tls.VersionTLS12})
+	} else {
+		conn, err = dialer.Dial("tcp", Address)
+	}
 
-	conn, err := dialer.Dial("tcp", Address)
 	if err != nil {
 		return err
 	}
