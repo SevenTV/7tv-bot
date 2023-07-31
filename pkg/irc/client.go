@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"io"
 	"net"
+	"net/textproto"
+	"strings"
 	"time"
 )
 
@@ -18,21 +20,25 @@ var (
 	AddressTLS = "irc.chat.twitch.tv:6697"
 )
 
-// Client handles the IRC connection and incoming messages
+// Client handles the IRC connection and incoming & outgoing messages.
+// The client requires you to respond to PING messages manually
+// as well as keep track of which channels you're connected to using the incoming JOIN & PART messages
 type Client struct {
 	user  string
 	oauth string
 
+	capabilities []string
+
 	UseTLS bool
 
-	read  chan []byte
+	read  chan string
 	write chan []byte
 
 	// TODO: convert to closer
 	clientDisconnect chan struct{}
 
 	onConnect func()
-	onMessage func(msg Message)
+	onMessage func(msg *Message, err error)
 }
 
 // New returns a new client
@@ -40,7 +46,7 @@ func New(user, oauth string) *Client {
 	return &Client{
 		user:             user,
 		oauth:            oauth,
-		read:             make(chan []byte, ReadBuffer),
+		read:             make(chan string, ReadBuffer),
 		write:            make(chan []byte, WriteBuffer),
 		clientDisconnect: make(chan struct{}, 0),
 	}
@@ -51,10 +57,16 @@ func NewAnon() *Client {
 	return &Client{
 		user:             "justinfan4321",
 		oauth:            "oauth",
-		read:             make(chan []byte, ReadBuffer),
+		read:             make(chan string, ReadBuffer),
 		write:            make(chan []byte, WriteBuffer),
 		clientDisconnect: make(chan struct{}, 0),
 	}
+}
+
+// WithCapabilities adds twitch-irc specific capabilities to a New client, use the constants defined in capabilities.go
+func (c *Client) WithCapabilities(caps ...string) *Client {
+	c.capabilities = caps
+	return c
 }
 
 // Connect starts the IRC connection
@@ -67,7 +79,17 @@ func (c *Client) Connect() error {
 		return err
 	}
 
-	c.login(conn)
+	if len(c.capabilities) > 0 {
+		err = c.requestCapabilities(conn)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = c.login(conn)
+	if err != nil {
+		return err
+	}
 
 	go c.startReader(conn)
 	go c.startWriter(conn)
@@ -77,26 +99,26 @@ func (c *Client) Connect() error {
 
 // Join makes the client join the passed channels
 func (c *Client) Join(channels ...string) {
-	joinString := "JOIN "
-	for i, channel := range channels {
-		joinString += "#" + channel
-
-		if i < len(channels)-1 {
-			joinString += ","
-		}
-	}
-
-	c.sendString(joinString)
+	c.sendString("JOIN " + appendChannels(channels...))
 }
 
 // Depart makes the client leave the passed channels
 func (c *Client) Depart(channels ...string) {
-	// TODO: implement
+	c.sendString("PART " + appendChannels(channels...))
 }
 
-func (c *Client) login(conn net.Conn) {
-	conn.Write([]byte("PASS " + c.oauth + "\r\n"))
-	conn.Write([]byte("NICK " + c.user + "\r\n"))
+func (c *Client) requestCapabilities(conn net.Conn) error {
+	_, err := conn.Write([]byte("CAP REQ :" + strings.Join(c.capabilities, " ") + "\r\n"))
+	return err
+}
+
+func (c *Client) login(conn net.Conn) error {
+	_, err := conn.Write([]byte("PASS " + c.oauth + "\r\n"))
+	if err != nil {
+		return err
+	}
+	_, err = conn.Write([]byte("NICK " + c.user + "\r\n"))
+	return err
 }
 
 func (c *Client) startReader(reader io.Reader) {
@@ -104,21 +126,23 @@ func (c *Client) startReader(reader io.Reader) {
 		c.clientDisconnect <- struct{}{}
 	}()
 
-	lineReader := bufio.NewReader(reader)
+	lineReader := textproto.NewReader(bufio.NewReader(reader))
 
 	for {
-		// TODO: check to make sure there's no line breaks in the incoming data
-		line, _, err := lineReader.ReadLine()
+		line, err := lineReader.ReadLine()
 		if err != nil {
 			// return will send a signal through c.clientDisconnect
 			return
 		}
-		c.read <- line
+
+		for _, msg := range strings.Split(line, "\r\n") {
+			c.read <- msg
+		}
 	}
 }
 
 func (c *Client) startWriter(conn net.Conn) {
-	// TODO: implement the (as of yet non existent) connection closer
+	// TODO: implement the (as of yet non-existent) connection closer
 	for {
 		select {
 		case msg := <-c.write:
@@ -141,7 +165,7 @@ func (c *Client) startHandler() error {
 	for {
 		select {
 		case line := <-c.read:
-			c.onMessage(message{raw: line})
+			c.onMessage(parseMessage(line))
 		case <-c.clientDisconnect:
 			return ErrClientDisconnected
 		}
@@ -154,7 +178,7 @@ func (c *Client) OnConnect(cb func()) {
 }
 
 // OnMessage sets a callback to handle the raw incoming IRC messages
-func (c *Client) OnMessage(cb func(msg Message)) {
+func (c *Client) OnMessage(cb func(msg *Message, err error)) {
 	c.onMessage = cb
 }
 
