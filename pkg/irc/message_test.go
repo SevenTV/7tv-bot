@@ -111,7 +111,7 @@ func Test_parseMessage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseMessage(tt.args.data)
+			got, err := ParseMessage(tt.args.data)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseMessage() error = %v, wantErr %v", err, tt.wantErr)
 				return
