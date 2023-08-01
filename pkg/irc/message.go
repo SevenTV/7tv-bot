@@ -31,7 +31,9 @@ type Message struct {
 	messageType MessageType
 }
 
-func parseMessage(data string) (*Message, error) {
+// ParseMessage returns a new message pointer containing the raw data & the message type.
+// returns an error if something went wrong, but will still contain the message object, so you can access the raw data.
+func ParseMessage(data string) (*Message, error) {
 	m := &Message{raw: data}
 
 	var err error
