@@ -208,7 +208,7 @@ func (c *Client) startHandler() error {
 	for {
 		select {
 		case line := <-c.read:
-			c.onMessage(parseMessage(line))
+			c.onMessage(ParseMessage(line))
 		case <-c.serverDisconnect.channel:
 			return ErrServerDisconnect
 		case <-c.clientDisconnect.channel:
