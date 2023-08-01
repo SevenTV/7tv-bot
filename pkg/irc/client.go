@@ -132,12 +132,12 @@ func (c *Client) Disconnect() {
 
 // Join makes the client join the passed channels
 func (c *Client) Join(channels ...string) {
-	c.sendString("JOIN " + appendChannels(channels...))
+	c.SendString("JOIN " + appendChannels(channels...))
 }
 
 // Part makes the client leave the passed channels
 func (c *Client) Part(channels ...string) {
-	c.sendString("PART " + appendChannels(channels...))
+	c.SendString("PART " + appendChannels(channels...))
 }
 
 func (c *Client) requestCapabilities(conn net.Conn) error {
@@ -222,12 +222,14 @@ func (c *Client) OnMessage(cb func(msg *Message, err error)) {
 	c.onMessage = cb
 }
 
-func (c *Client) send(line []byte) {
+// Send a []byte message to the server (does not need \r\n at the end of the line)
+func (c *Client) Send(line []byte) {
 	c.write <- line
 }
 
-func (c *Client) sendString(line string) {
-	c.send([]byte(line))
+// SendString sends a string message to the server (does not need \r\n at the end of the line)
+func (c *Client) SendString(line string) {
+	c.Send([]byte(line))
 }
 
 // closer is used to keep track of when we disconnect, whether it be by the server or the client
