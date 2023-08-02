@@ -62,6 +62,9 @@ func (c *connection) join(channel *ircChannel) error {
 	c.capacity -= channel.weight
 	c.channels = append(c.channels, channel)
 
+	// make sure the client is connected
+	<-c.client.Connected.C
+
 	c.client.Join(channel.name)
 
 	return nil
