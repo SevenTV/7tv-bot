@@ -37,6 +37,15 @@ func newConnection(user, oauth string) *connection {
 
 func (c *connection) connect() error {
 	c.client.OnMessage(c.handleMessages)
+
+	// rejoin channels if restarted
+	go func() {
+		<-c.client.OnConnect
+		for _, channel := range c.channels {
+			c.client.Join(channel.name)
+		}
+	}()
+
 	return c.client.Connect()
 }
 

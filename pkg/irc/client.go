@@ -40,7 +40,8 @@ type Client struct {
 	serverDisconnect closer
 	clientDisconnect closer
 
-	// OnConnect sends a signal when the connection to the IRC has been established, only gets sent once, should be closed after receiving
+	// OnConnect sends a signal when the connection to the IRC has been established, only gets sent once.
+	// Should be closed after receiving if you don't reuse the same client to reconnect.
 	OnConnect chan struct{}
 	onMessage func(msg *Message, err error)
 }
