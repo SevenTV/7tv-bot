@@ -22,7 +22,9 @@ type connection struct {
 	// capacity determines how many channels can be joined on a connection
 	capacity  int
 	onMessage func(msg *irc.Message, err error)
-	OnPart    chan *ircChannel
+
+	// OnPart is used to feed back channels we left to the manager
+	OnPart chan *ircChannel
 }
 
 // newConnection sets up a new connection with capacity as set in ConnectionCapacity
@@ -40,7 +42,7 @@ func (c *connection) connect() error {
 
 	// rejoin channels if restarted
 	go func() {
-		<-c.client.OnConnect
+		<-c.client.Connected.C
 		for _, channel := range c.channels {
 			c.client.Join(channel.name)
 		}
@@ -125,7 +127,7 @@ func parseChannels(data string) []string {
 	// list of users is contained in the last split
 	last := splits[len(splits)-1]
 
-	result := []string{}
+	var result []string
 	for _, user := range strings.Split(last, ",") {
 		// user should always start with #, if this is not the case, something is wrong
 		if !strings.HasPrefix(user, "#") {

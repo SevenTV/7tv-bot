@@ -3,6 +3,7 @@ package irc
 import (
 	"bufio"
 	"crypto/tls"
+	"github.com/seventv/twitch-irc-reader/pkg/util"
 	"io"
 	"net"
 	"net/textproto"
@@ -37,36 +38,35 @@ type Client struct {
 	read  chan string
 	write chan []byte
 
-	serverDisconnect closer
-	clientDisconnect closer
+	serverDisconnect util.Closer
+	clientDisconnect util.Closer
 
-	// OnConnect sends a signal when the connection to the IRC has been established, only gets sent once.
-	// Should be closed after receiving if you don't reuse the same client to reconnect.
-	OnConnect chan struct{}
+	// Connected gets closed when the connection to the IRC has been established.
+	// Meaning reading from its C channel is no longer blocking.
+	Connected util.Closer
+
 	onMessage func(msg *Message, err error)
 }
 
 // New returns a new client
 func New(user, oauth string) *Client {
 	return &Client{
-		user:      user,
-		oauth:     oauth,
-		UseTLS:    true,
-		read:      make(chan string, ReadBuffer),
-		write:     make(chan []byte, WriteBuffer),
-		OnConnect: make(chan struct{}, 1),
+		user:   user,
+		oauth:  oauth,
+		UseTLS: true,
+		read:   make(chan string, ReadBuffer),
+		write:  make(chan []byte, WriteBuffer),
 	}
 }
 
 // NewAnon returns an anonymous client, useful for testing, or small read-only bots
 func NewAnon() *Client {
 	return &Client{
-		user:      "justinfan77777",
-		oauth:     "oauth",
-		UseTLS:    true,
-		read:      make(chan string, ReadBuffer),
-		write:     make(chan []byte, WriteBuffer),
-		OnConnect: make(chan struct{}, 1),
+		user:   "justinfan77777",
+		oauth:  "oauth",
+		UseTLS: true,
+		read:   make(chan string, ReadBuffer),
+		write:  make(chan []byte, WriteBuffer),
 	}
 }
 
@@ -78,6 +78,11 @@ func (c *Client) WithCapabilities(caps ...string) *Client {
 
 // Connect starts the IRC connection
 func (c *Client) Connect() (err error) {
+	// reset all closers
+	c.Connected.Reset()
+	c.clientDisconnect.Reset()
+	c.serverDisconnect.Reset()
+
 	dialer := &net.Dialer{KeepAlive: time.Second * 10}
 	var conn net.Conn
 	if c.UseTLS {
@@ -89,9 +94,6 @@ func (c *Client) Connect() (err error) {
 	if err != nil {
 		return err
 	}
-
-	c.clientDisconnect.reset()
-	c.serverDisconnect.reset()
 
 	err = c.requestCapabilities(conn)
 	if err != nil {
@@ -109,7 +111,7 @@ func (c *Client) Connect() (err error) {
 	go c.startWriter(conn, &wg)
 
 	// Send signal when the client has connected
-	c.OnConnect <- struct{}{}
+	c.Connected.Close()
 
 	// blocks here, until server disconnects or c.Disconnect() is called,
 	//the error we get from here tells us whether the client disconnected, or the server disconnected us
@@ -117,8 +119,8 @@ func (c *Client) Connect() (err error) {
 
 	// close all channels & connections to make sure there's no memory leaks
 	conn.Close()
-	c.serverDisconnect.close()
-	c.clientDisconnect.close()
+	c.serverDisconnect.Close()
+	c.clientDisconnect.Close()
 
 	// Wait until both reader & writer are closed
 	wg.Wait()
@@ -128,7 +130,7 @@ func (c *Client) Connect() (err error) {
 
 // Disconnect closes the IRC connection
 func (c *Client) Disconnect() {
-	c.clientDisconnect.close()
+	c.clientDisconnect.Close()
 }
 
 // Join makes the client join the passed channels
@@ -160,7 +162,7 @@ func (c *Client) login(conn net.Conn) error {
 
 func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
 	defer func() {
-		c.serverDisconnect.close()
+		c.serverDisconnect.Close()
 		wg.Done()
 	}()
 
@@ -185,9 +187,9 @@ func (c *Client) startWriter(conn net.Conn, wg *sync.WaitGroup) {
 	}()
 	for {
 		select {
-		case <-c.clientDisconnect.channel:
+		case <-c.clientDisconnect.C:
 			return
-		case <-c.serverDisconnect.channel:
+		case <-c.serverDisconnect.C:
 			return
 		case msg := <-c.write:
 			c.writeMessage(conn, msg)
@@ -201,7 +203,7 @@ func (c *Client) writeMessage(writer io.WriteCloser, data []byte) {
 	_, err := writer.Write(append(data, newLine...))
 	if err != nil {
 		writer.Close()
-		c.serverDisconnect.close()
+		c.serverDisconnect.Close()
 	}
 }
 
@@ -210,9 +212,9 @@ func (c *Client) startHandler() error {
 		select {
 		case line := <-c.read:
 			c.onMessage(ParseMessage(line))
-		case <-c.serverDisconnect.channel:
+		case <-c.serverDisconnect.C:
 			return ErrServerDisconnect
-		case <-c.clientDisconnect.channel:
+		case <-c.clientDisconnect.C:
 			return ErrClientDisconnected
 		}
 	}
@@ -231,26 +233,4 @@ func (c *Client) Send(line []byte) {
 // SendString sends a string message to the server (does not need \r\n at the end of the line)
 func (c *Client) SendString(line string) {
 	c.Send([]byte(line))
-}
-
-// closer is used to keep track of when we disconnect, whether it be by the server or the client
-type closer struct {
-	mx      sync.Mutex
-	o       *sync.Once
-	channel chan struct{}
-}
-
-func (c *closer) reset() {
-	c.mx.Lock()
-	c.o = &sync.Once{}
-	c.channel = make(chan struct{})
-	c.mx.Unlock()
-}
-
-func (c *closer) close() {
-	c.mx.Lock()
-	c.o.Do(func() {
-		close(c.channel)
-	})
-	c.mx.Unlock()
 }
