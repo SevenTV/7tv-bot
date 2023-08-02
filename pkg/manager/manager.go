@@ -2,6 +2,7 @@ package manager
 
 import (
 	"github.com/seventv/twitch-irc-reader/pkg/irc"
+	"strings"
 	"sync"
 	"time"
 )
@@ -53,7 +54,7 @@ func (m *IRCManager) Join(channelName string, weight int) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	// if channel is already joined, return error
-	if _, found := m.channels[channelName]; found {
+	if _, found := m.channels[strings.ToLower(channelName)]; found {
 		return ErrChanAlreadyJoined
 	}
 
@@ -66,7 +67,7 @@ func (m *IRCManager) Join(channelName string, weight int) error {
 	channel := newIrcChannel(channelName, weight)
 	channel.connectionKey = connectionKey
 
-	m.channels[channelName] = channel
+	m.channels[channel.name] = channel
 	// TODO: mutex unlock here? So we can call Join() again without having to wait for new connections
 
 	return m.connections[connectionKey].join(channel)
