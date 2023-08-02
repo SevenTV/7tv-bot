@@ -50,23 +50,29 @@ type Client struct {
 
 // New returns a new client
 func New(user, oauth string) *Client {
+	connectedCloser := util.Closer{}
+	connectedCloser.Reset()
 	return &Client{
-		user:   user,
-		oauth:  oauth,
-		UseTLS: true,
-		read:   make(chan string, ReadBuffer),
-		write:  make(chan []byte, WriteBuffer),
+		user:      user,
+		oauth:     oauth,
+		UseTLS:    true,
+		read:      make(chan string, ReadBuffer),
+		write:     make(chan []byte, WriteBuffer),
+		Connected: connectedCloser,
 	}
 }
 
 // NewAnon returns an anonymous client, useful for testing, or small read-only bots
 func NewAnon() *Client {
+	connectedCloser := util.Closer{}
+	connectedCloser.Reset()
 	return &Client{
-		user:   "justinfan77777",
-		oauth:  "oauth",
-		UseTLS: true,
-		read:   make(chan string, ReadBuffer),
-		write:  make(chan []byte, WriteBuffer),
+		user:      "justinfan77777",
+		oauth:     "oauth",
+		UseTLS:    true,
+		read:      make(chan string, ReadBuffer),
+		write:     make(chan []byte, WriteBuffer),
+		Connected: connectedCloser,
 	}
 }
 
@@ -79,7 +85,6 @@ func (c *Client) WithCapabilities(caps ...string) *Client {
 // Connect starts the IRC connection
 func (c *Client) Connect() (err error) {
 	// reset all closers
-	c.Connected.Reset()
 	c.clientDisconnect.Reset()
 	c.serverDisconnect.Reset()
 
