@@ -9,24 +9,29 @@ var (
 	// ConnectionCapacity determines how many channels you can JOIN on a single connection,
 	// must be set before creating any connections
 	ConnectionCapacity = 50
+
+	// PartedBuffer determines the buffer size for the OnPart channel
+	PartedBuffer = 10
 )
 
 // connection helps you manage a single IRC connection using some middleware,
 // to enable the IRCManager to manage lots of connections
 type connection struct {
 	client   *irc.Client
-	channels []*channel
+	channels []*ircChannel
 	// capacity determines how many channels can be joined on a connection
 	capacity  int
 	onMessage func(msg *irc.Message, err error)
+	OnPart    chan *ircChannel
 }
 
 // newConnection sets up a new connection with capacity as set in ConnectionCapacity
 func newConnection(user, oauth string) *connection {
 	return &connection{
 		client:   irc.New(user, oauth).WithCapabilities(irc.CapTags),
-		channels: []*channel{},
+		channels: []*ircChannel{},
 		capacity: ConnectionCapacity,
+		OnPart:   make(chan *ircChannel, PartedBuffer),
 	}
 }
 
@@ -39,8 +44,16 @@ func (c *connection) disconnect() {
 	// TODO: implement, should make a way to pass parted channels back to the manager after
 }
 
-func (c *connection) join() {
-	// TODO: implement
+func (c *connection) join(channel *ircChannel) error {
+	if c.capacity < channel.weight {
+		return ErrNoCapacity
+	}
+	c.capacity -= channel.weight
+	c.channels = append(c.channels, channel)
+
+	c.client.Join(channel.name)
+
+	return nil
 }
 
 func (c *connection) part() {

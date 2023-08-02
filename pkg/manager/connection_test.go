@@ -11,7 +11,7 @@ func Test_connection_handleMessages(t *testing.T) {
 	partMsg, _ := irc.ParseMessage(":justinfan77777!justinfan77777@justinfan77777.tmi.twitch.tv PART #forsen")
 	type fields struct {
 		client    *irc.Client
-		channels  []*channel
+		channels  []*ircChannel
 		capacity  int
 		onMessage func(msg *irc.Message, err error)
 	}
@@ -23,12 +23,12 @@ func Test_connection_handleMessages(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   []*channel
+		want   []*ircChannel
 	}{
 		{
 			name: "JOIN",
 			fields: fields{
-				channels: []*channel{
+				channels: []*ircChannel{
 					{name: "forsen"},
 					{name: "sodapoppin"},
 				},
@@ -38,7 +38,7 @@ func Test_connection_handleMessages(t *testing.T) {
 				msg: joinMsg,
 				err: nil,
 			},
-			want: []*channel{
+			want: []*ircChannel{
 				{
 					name:     "forsen",
 					isJoined: true,
@@ -52,7 +52,7 @@ func Test_connection_handleMessages(t *testing.T) {
 		{
 			name: "PART",
 			fields: fields{
-				channels: []*channel{
+				channels: []*ircChannel{
 					{
 						name:     "forsen",
 						isJoined: true,
@@ -68,7 +68,7 @@ func Test_connection_handleMessages(t *testing.T) {
 				msg: partMsg,
 				err: nil,
 			},
-			want: []*channel{
+			want: []*ircChannel{
 				{
 					name:     "forsen",
 					isJoined: false,
