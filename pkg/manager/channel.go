@@ -10,6 +10,9 @@ type ircChannel struct {
 	// this is important to keep track of for when we PART this channel
 	weight   int
 	isJoined bool
+
+	// connectionKey contains the key of the assigned connection
+	connectionKey uint
 }
 
 // newIrcChannel returns a new ircChannel with given name & weight.
