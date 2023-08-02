@@ -56,7 +56,7 @@ func (c *connection) disconnect() {
 }
 
 func (c *connection) join(channel *ircChannel) error {
-	if c.capacity < channel.weight {
+	if !c.hasCapacity(channel.weight) {
 		return ErrNoCapacity
 	}
 	c.capacity -= channel.weight
@@ -65,6 +65,10 @@ func (c *connection) join(channel *ircChannel) error {
 	c.client.Join(channel.name)
 
 	return nil
+}
+
+func (c *connection) hasCapacity(weight int) bool {
+	return c.capacity >= weight
 }
 
 func (c *connection) part() {
