@@ -3,15 +3,13 @@ package manager
 import (
 	"github.com/seventv/twitch-irc-reader/pkg/irc"
 	"strings"
+	"sync"
 )
 
 var (
 	// ConnectionCapacity determines how many channels you can JOIN on a single connection,
 	// must be set before creating any connections
 	ConnectionCapacity = 50
-
-	// PartedBuffer determines the buffer size for the OnPart channel
-	PartedBuffer = 10
 )
 
 // connection helps you manage a single IRC connection using some middleware,
@@ -26,36 +24,38 @@ type connection struct {
 	capacity  int
 	onMessage func(msg *irc.Message, err error)
 
-	// OnPart is used to feed back channels we left to the manager
-	OnPart chan *ircChannel
+	// isReady means the connection is ready to accept new channels.
+	// If this is false, it means the connection is closing or closed
+	isReady bool
+
+	// Parted is used to feed back channels we left to the manager, must be set before calling connect
+	Parted chan *ircChannel
 }
 
 // newConnection sets up a new connection with capacity as set in ConnectionCapacity
 func newConnection(user, oauth string) *connection {
 	return &connection{
-		client:   irc.New(user, oauth).WithCapabilities(irc.CapTags),
-		channels: []*ircChannel{},
-		capacity: ConnectionCapacity,
-		OnPart:   make(chan *ircChannel, PartedBuffer),
+		client:     irc.New(user, oauth).WithCapabilities(irc.CapTags),
+		channels:   []*ircChannel{},
+		channelsMx: &sync.Mutex{},
+		capacity:   ConnectionCapacity,
+		isReady:    true,
 	}
 }
 
 func (c *connection) connect() error {
 	c.client.OnMessage(c.handleMessages)
 
-	// rejoin channels if restarted
-	go func() {
-		<-c.client.Connected.C
-		for _, channel := range c.channels {
-			c.client.Join(channel.name)
-		}
+	defer func() {
+		// set isReady to false after the connection is closed
+		c.isReady = false
 	}()
 
 	return c.client.Connect()
 }
 
 func (c *connection) disconnect() {
-	// TODO: implement, should make a way to pass parted channels back to the manager after
+	c.client.Disconnect()
 }
 
 func (c *connection) join(channel *ircChannel) error {
@@ -63,8 +63,6 @@ func (c *connection) join(channel *ircChannel) error {
 	if err != nil {
 		return err
 	}
-	c.capacity -= channel.weight
-	c.channels = append(c.channels, channel)
 
 	// make sure the client is connected
 	<-c.client.Connected.C
@@ -192,7 +190,7 @@ func parseChannels(data string) []string {
 			continue
 		}
 
-		result = append(result, strings.TrimLeft(user, "#"))
+		result = append(result, strings.ToLower(strings.TrimLeft(user, "#")))
 	}
 	return result
 }
