@@ -19,6 +19,9 @@ var (
 type connection struct {
 	client   *irc.Client
 	channels []*ircChannel
+	// avoids a lot of headaches
+	channelsMx *sync.Mutex
+
 	// capacity determines how many channels can be joined on a connection
 	capacity  int
 	onMessage func(msg *irc.Message, err error)
@@ -56,8 +59,9 @@ func (c *connection) disconnect() {
 }
 
 func (c *connection) join(channel *ircChannel) error {
-	if !c.hasCapacity(channel.weight) {
-		return ErrNoCapacity
+	err := c.addChannel(channel)
+	if err != nil {
+		return err
 	}
 	c.capacity -= channel.weight
 	c.channels = append(c.channels, channel)
@@ -74,8 +78,8 @@ func (c *connection) hasCapacity(weight int) bool {
 	return c.capacity >= weight
 }
 
-func (c *connection) part() {
-	// TODO: implement, should make a way to pass parted channels back to the manager after
+func (c *connection) part(channels ...string) {
+	c.client.Part(channels...)
 }
 
 func (c *connection) setOnMessage(cb func(msg *irc.Message, err error)) {
@@ -106,23 +110,70 @@ func (c *connection) pong(msg *irc.Message) {
 
 func (c *connection) onJoin(msg *irc.Message) {
 	// flag joined channels as isJoined = true
-	c.setChannelsJoined(msg.String(), true)
+	for _, joined := range parseChannels(msg.String()) {
+		c.setChannelIsJoined(joined, true)
+	}
 }
 
 func (c *connection) onPart(msg *irc.Message) {
-	// TODO: implement logic for properly removing channel or attempt reconnect (signal back to manager?)
 	// flag parted channels as isJoined = false
-	c.setChannelsJoined(msg.String(), false)
+	for _, parted := range parseChannels(msg.String()) {
+		c.setChannelIsJoined(parted, false)
+		c.partChannel(parted)
+	}
 }
 
-func (c *connection) setChannelsJoined(data string, isJoined bool) {
-	for _, joined := range parseChannels(data) {
-		for _, ch := range c.channels {
-			if joined == ch.name {
-				ch.isJoined = isJoined
-				break
-			}
+func (c *connection) setChannelIsJoined(joined string, isJoined bool) {
+	c.channelsMx.Lock()
+	defer c.channelsMx.Unlock()
+
+	for _, ch := range c.channels {
+		if joined == ch.name {
+			ch.isJoined = isJoined
+			break
 		}
+	}
+}
+
+func (c *connection) addChannel(channel *ircChannel) error {
+	c.channelsMx.Lock()
+	defer c.channelsMx.Unlock()
+
+	if !c.hasCapacity(channel.weight) {
+		return ErrNoCapacity
+	}
+	c.capacity -= channel.weight
+	c.channels = append(c.channels, channel)
+
+	return nil
+}
+
+// partChannel removes the given channel from this connection, and sends a signal to Parted
+func (c *connection) partChannel(channelName string) {
+	c.channelsMx.Lock()
+
+	for i, channel := range c.channels {
+		if channel.name == channelName {
+			c.channels[i] = c.channels[len(c.channels)-1]
+			c.channels = c.channels[:len(c.channels)-1]
+
+			// give capacity back to connection
+			c.capacity += channel.weight
+
+			// unlock mutex, we are done manipulating the slice
+			c.channelsMx.Unlock()
+
+			c.Parted <- channel
+			return
+		}
+	}
+	c.channelsMx.Unlock()
+}
+
+// flushChannels flushes all channels related to this connection to the passed channel
+func (c *connection) flushChannels(ch chan *ircChannel) {
+	for _, channel := range c.channels {
+		ch <- channel
 	}
 }
 
