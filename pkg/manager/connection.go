@@ -16,7 +16,7 @@ var (
 // to enable the IRCManager to manage lots of connections
 type connection struct {
 	client   *irc.Client
-	channels []*ircChannel
+	channels []*IRCChannel
 	// avoids a lot of headaches
 	channelsMx *sync.Mutex
 
@@ -29,14 +29,14 @@ type connection struct {
 	isReady bool
 
 	// Parted is used to feed back channels we left to the manager, must be set before calling connect
-	Parted chan *ircChannel
+	Parted chan *IRCChannel
 }
 
 // newConnection sets up a new connection with capacity as set in ConnectionCapacity
 func newConnection(user, oauth string) *connection {
 	return &connection{
 		client:     irc.New(user, oauth).WithCapabilities(irc.CapTags),
-		channels:   []*ircChannel{},
+		channels:   []*IRCChannel{},
 		channelsMx: &sync.Mutex{},
 		capacity:   ConnectionCapacity,
 		isReady:    true,
@@ -58,7 +58,7 @@ func (c *connection) disconnect() {
 	c.client.Disconnect()
 }
 
-func (c *connection) join(channel *ircChannel) error {
+func (c *connection) join(channel *IRCChannel) error {
 	err := c.addChannel(channel)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func (c *connection) join(channel *ircChannel) error {
 	// make sure the client is connected
 	<-c.client.Connected.C
 
-	c.client.Join(channel.name)
+	c.client.Join(channel.Name)
 
 	return nil
 }
@@ -126,21 +126,21 @@ func (c *connection) setChannelIsJoined(joined string, isJoined bool) {
 	defer c.channelsMx.Unlock()
 
 	for _, ch := range c.channels {
-		if joined == ch.name {
+		if joined == ch.Name {
 			ch.isJoined = isJoined
 			break
 		}
 	}
 }
 
-func (c *connection) addChannel(channel *ircChannel) error {
+func (c *connection) addChannel(channel *IRCChannel) error {
 	c.channelsMx.Lock()
 	defer c.channelsMx.Unlock()
 
-	if !c.hasCapacity(channel.weight) {
+	if !c.hasCapacity(channel.Weight) {
 		return ErrNoCapacity
 	}
-	c.capacity -= channel.weight
+	c.capacity -= channel.Weight
 	c.channels = append(c.channels, channel)
 
 	return nil
@@ -151,12 +151,12 @@ func (c *connection) partChannel(channelName string) {
 	c.channelsMx.Lock()
 
 	for i, channel := range c.channels {
-		if channel.name == channelName {
+		if channel.Name == channelName {
 			c.channels[i] = c.channels[len(c.channels)-1]
 			c.channels = c.channels[:len(c.channels)-1]
 
 			// give capacity back to connection
-			c.capacity += channel.weight
+			c.capacity += channel.Weight
 
 			// unlock mutex, we are done manipulating the slice
 			c.channelsMx.Unlock()
@@ -169,7 +169,7 @@ func (c *connection) partChannel(channelName string) {
 }
 
 // flushChannels flushes all channels related to this connection to the passed channel
-func (c *connection) flushChannels(ch chan *ircChannel) {
+func (c *connection) flushChannels(ch chan *IRCChannel) {
 	for _, channel := range c.channels {
 		ch <- channel
 	}

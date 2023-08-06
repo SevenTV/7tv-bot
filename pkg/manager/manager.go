@@ -14,7 +14,7 @@ type IRCManager struct {
 
 	// map with connections mapped to incremental uint, we don't use a slice here since removing an element would change the keys after it
 	connections map[uint]*connection
-	channels    map[string]*ircChannel
+	channels    map[string]*IRCChannel
 
 	wg *sync.WaitGroup
 	mx *sync.Mutex
@@ -25,8 +25,8 @@ type IRCManager struct {
 	// without explicitly having called Part or Disconnect.
 	//
 	// This channel MUST be received!
-	OrphanedChannels chan *ircChannel
-	partedChannels   chan *ircChannel
+	OrphanedChannels chan *IRCChannel
+	partedChannels   chan *IRCChannel
 
 	onMessage func(*irc.Message, error)
 }
@@ -40,10 +40,10 @@ func New(user, oauth string) *IRCManager {
 		oauth: oauth,
 
 		connections: make(map[uint]*connection),
-		channels:    make(map[string]*ircChannel),
+		channels:    make(map[string]*IRCChannel),
 
-		OrphanedChannels: make(chan *ircChannel),
-		partedChannels:   make(chan *ircChannel),
+		OrphanedChannels: make(chan *IRCChannel),
+		partedChannels:   make(chan *IRCChannel),
 
 		wg: &sync.WaitGroup{},
 		mx: &sync.Mutex{},
@@ -62,7 +62,7 @@ func (m *IRCManager) Init() error {
 	}
 	go func() {
 		for channel := range m.partedChannels {
-			m.deleteChannel(channel.name)
+			m.deleteChannel(channel.Name)
 		}
 	}()
 	return nil
@@ -132,7 +132,7 @@ func (m *IRCManager) Join(channelName string, weight int) error {
 	channel := newIrcChannel(channelName, weight)
 	channel.connectionKey = connectionKey
 
-	m.channels[channel.name] = channel
+	m.channels[channel.Name] = channel
 	// mutex unlock, so we can call Join() again, without having to wait for new connections
 	m.mx.Unlock()
 
@@ -196,7 +196,7 @@ func (m *IRCManager) deleteConnection(key uint) error {
 	}
 
 	for _, channel := range conn.channels {
-		m.deleteChannel(channel.name)
+		m.deleteChannel(channel.Name)
 	}
 
 	delete(m.connections, key)
@@ -206,7 +206,7 @@ func (m *IRCManager) deleteConnection(key uint) error {
 
 // findChannel looks for the given channel name in the list of connected irc channels.
 // Please call strings.ToLower() before passing along the channelName argument
-func (m *IRCManager) findChannel(channelName string) *ircChannel {
+func (m *IRCManager) findChannel(channelName string) *IRCChannel {
 	channel, found := m.channels[channelName]
 	if !found {
 		return nil
@@ -222,7 +222,7 @@ func (m *IRCManager) deleteChannel(channelName string) error {
 	if !found {
 		return ErrChanNotFound
 	}
-	delete(m.channels, channel.name)
+	delete(m.channels, channel.Name)
 
 	return nil
 }

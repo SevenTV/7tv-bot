@@ -11,7 +11,7 @@ func Test_connection_handleMessages(t *testing.T) {
 	partMsg, _ := irc.ParseMessage(":justinfan77777!justinfan77777@justinfan77777.tmi.twitch.tv PART #forsen")
 	type fields struct {
 		client    *irc.Client
-		channels  []*ircChannel
+		channels  []*IRCChannel
 		capacity  int
 		onMessage func(msg *irc.Message, err error)
 	}
@@ -23,14 +23,14 @@ func Test_connection_handleMessages(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   []*ircChannel
+		want   []*IRCChannel
 	}{
 		{
 			name: "JOIN",
 			fields: fields{
-				channels: []*ircChannel{
-					{name: "forsen"},
-					{name: "sodapoppin"},
+				channels: []*IRCChannel{
+					{Name: "forsen"},
+					{Name: "sodapoppin"},
 				},
 				onMessage: func(msg *irc.Message, err error) {},
 			},
@@ -38,13 +38,13 @@ func Test_connection_handleMessages(t *testing.T) {
 				msg: joinMsg,
 				err: nil,
 			},
-			want: []*ircChannel{
+			want: []*IRCChannel{
 				{
-					name:     "forsen",
+					Name:     "forsen",
 					isJoined: true,
 				},
 				{
-					name:     "sodapoppin",
+					Name:     "sodapoppin",
 					isJoined: false,
 				},
 			},
@@ -52,13 +52,13 @@ func Test_connection_handleMessages(t *testing.T) {
 		{
 			name: "PART",
 			fields: fields{
-				channels: []*ircChannel{
+				channels: []*IRCChannel{
 					{
-						name:     "forsen",
+						Name:     "forsen",
 						isJoined: true,
 					},
 					{
-						name:     "sodapoppin",
+						Name:     "sodapoppin",
 						isJoined: true,
 					},
 				},
@@ -68,13 +68,13 @@ func Test_connection_handleMessages(t *testing.T) {
 				msg: partMsg,
 				err: nil,
 			},
-			want: []*ircChannel{
+			want: []*IRCChannel{
 				{
-					name:     "forsen",
+					Name:     "forsen",
 					isJoined: false,
 				},
 				{
-					name:     "sodapoppin",
+					Name:     "sodapoppin",
 					isJoined: true,
 				},
 			},
