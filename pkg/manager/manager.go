@@ -153,9 +153,16 @@ func (m *IRCManager) findConnectionWithCapacity(weight int) uint {
 	return 0
 }
 
+// addNewConnection starts a new connection & adds it to the manager.
+// returns the key for the connection in m.connections
 func (m *IRCManager) addNewConnection() uint {
 	// connectionCounter is incremented before its value is read, so 0 can be used in findConnectionWithCapacity
 	m.connectionCounter++
+
+	// this is for the very unlikely event we overflow the uint type
+	if m.connectionCounter == 0 {
+		m.connectionCounter++
+	}
 
 	con := newConnection(m.user, m.oauth)
 	con.Parted = m.partedChannels
