@@ -17,13 +17,24 @@ type IRCManager struct {
 	connections map[uint]*connection
 	channels    map[string]*ircChannel
 
+	wg *sync.WaitGroup
 	mx *sync.Mutex
+
+	isClosing bool
+
+	// OrphanedChannels is a channel that sends a queue of IRC channels have lost their parent connection,
+	// without explicitly having called Part or Disconnect.
+	//
+	// This channel MUST be received!
+	OrphanedChannels chan *ircChannel
+	partedChannels   chan *ircChannel
 
 	onMessage func(*irc.Message, error)
 }
 
 // New returns a new IRC manager, set up with the passed authentication.
-// Requires you to call .OnMessage() before you .Join() a channel
+//
+// Requires you to call .OnMessage(), and listen to the OrphanedChannels channel, before you .Join() a channel
 func New(user, oauth string) *IRCManager {
 	return &IRCManager{
 		user:  user,
@@ -32,6 +43,10 @@ func New(user, oauth string) *IRCManager {
 		connections: make(map[uint]*connection),
 		channels:    make(map[string]*ircChannel),
 
+		OrphanedChannels: make(chan *ircChannel),
+		partedChannels:   make(chan *ircChannel),
+
+		wg: &sync.WaitGroup{},
 		mx: &sync.Mutex{},
 	}
 }
@@ -88,25 +103,64 @@ func (m *IRCManager) addNewConnection() uint {
 	m.connectionCounter++
 
 	con := newConnection(m.user, m.oauth)
+	con.Parted = m.partedChannels
 	con.setOnMessage(m.onMessage)
 
 	m.connections[m.connectionCounter] = con
 
-	// create worker to keep connection active
-	// TODO: this needs to be revised, just a quick solution to start testing
+	// create worker
+	m.wg.Add(1)
+	connectionKey := m.connectionCounter
 	go func() {
-		for {
-			err := con.connect()
-			// TODO: feed back channels to user on disconnect & delete connection in m.connections, instead of reusing the dead connection, so we don't exceed JOIN ratelimit
-			if err == irc.ErrServerDisconnect {
-				// if we were disconnected by the server, wait 5 seconds and try again
-				<-time.NewTimer(5 * time.Second).C
-				continue
-			}
-			// end worker, if we reach this, it means the connection has been ended deliberately
-			break
+		defer m.wg.Done()
+		err := con.connect()
+		if err == irc.ErrServerDisconnect {
+			// if we were disconnected by the server, flush all connected channels to the OrphanedChannels channel
+			con.flushChannels(m.OrphanedChannels)
 		}
+		m.deleteConnection(connectionKey)
 	}()
 
 	return m.connectionCounter
+}
+
+func (m *IRCManager) deleteConnection(key uint) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
+	conn, ok := m.connections[key]
+	if !ok {
+		return ErrConnNotFound
+	}
+
+	for _, channel := range conn.channels {
+		m.deleteChannel(channel.name)
+	}
+
+	delete(m.connections, key)
+
+	return nil
+}
+
+// findChannel looks for the given channel name in the list of connected irc channels.
+// Please call strings.ToLower() before passing along the channelName argument
+func (m *IRCManager) findChannel(channelName string) *ircChannel {
+	channel, found := m.channels[channelName]
+	if !found {
+		return nil
+	}
+
+	return channel
+}
+
+// findChannel looks for the given channel name in the list of connected irc channels and deletes it.
+// Please call strings.ToLower() before passing along the channelName argument
+func (m *IRCManager) deleteChannel(channelName string) error {
+	channel, found := m.channels[channelName]
+	if !found {
+		return ErrChanNotFound
+	}
+	delete(m.channels, channel.name)
+
+	return nil
 }
