@@ -4,7 +4,6 @@ import (
 	"github.com/seventv/twitch-irc-reader/pkg/irc"
 	"strings"
 	"sync"
-	"time"
 )
 
 // IRCManager manages multiple IRC connections & keeps track of their connected channels
@@ -51,9 +50,56 @@ func New(user, oauth string) *IRCManager {
 	}
 }
 
-// TODO: implement Disconnect()
+// Init does some basic checks to make sure the IRCManager is ready to use.
+//
+// It also starts a goroutine for reading channels to keep the service running properly
+func (m *IRCManager) Init() error {
+	if m.onMessage == nil {
+		return ErrOnMessageUnset
+	}
+	if m.isClosing {
+		return ErrManagerClosing
+	}
+	go func() {
+		for channel := range m.partedChannels {
+			m.deleteChannel(channel.name)
+		}
+	}()
+	return nil
+}
 
-// TODO: implement Part()
+// Shutdown stops & disconnects ALL connections in the manager, returns a WaitGroup to wait for graceful shutdown
+// Calling Shutdown will not send back any previously joined channels to OrphanedChannels.
+func (m *IRCManager) Shutdown() *sync.WaitGroup {
+	m.isClosing = true
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	for _, conn := range m.connections {
+		conn.disconnect()
+	}
+
+	return m.wg
+}
+
+// Part sends a PART message for the channel you want to leave to the connection that it is connected to
+func (m *IRCManager) Part(channelName string) error {
+	if m.isClosing {
+		return ErrManagerClosing
+	}
+
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	channel := m.findChannel(strings.ToLower(channelName))
+	if channel == nil {
+		return ErrChanNotFound
+	}
+	conn, ok := m.connections[channel.connectionKey]
+	if !ok {
+		return ErrConnNotFound
+	}
+	conn.part(strings.ToLower(channelName))
+	return nil
+}
 
 // OnMessage sets a callback, executed on all incoming IRC messages from every connection.
 // Must be set before you try to Join channels, not setting this will result in nil pointer!
@@ -66,10 +112,14 @@ func (m *IRCManager) OnMessage(cb func(*irc.Message, error)) {
 // Requires the name of the channel you want to JOIN & a weight, so we can avoid putting too many busy channels on the same connection.
 // Default max capacity of a connection is 50, any weight value equal to or higher than the max capacity will assign the channel its own unique connection.
 func (m *IRCManager) Join(channelName string, weight int) error {
+	if m.isClosing {
+		return ErrManagerClosing
+	}
+
 	m.mx.Lock()
-	defer m.mx.Unlock()
 	// if channel is already joined, return error
 	if _, found := m.channels[strings.ToLower(channelName)]; found {
+		m.mx.Unlock()
 		return ErrChanAlreadyJoined
 	}
 
@@ -83,14 +133,19 @@ func (m *IRCManager) Join(channelName string, weight int) error {
 	channel.connectionKey = connectionKey
 
 	m.channels[channel.name] = channel
-	// TODO: mutex unlock here? So we can call Join() again without having to wait for new connections
+	// mutex unlock, so we can call Join() again, without having to wait for new connections
+	m.mx.Unlock()
 
 	return m.connections[connectionKey].join(channel)
 }
 
 func (m *IRCManager) findConnectionWithCapacity(weight int) uint {
-	for k, v := range m.connections {
-		if v.hasCapacity(weight) {
+	for k, conn := range m.connections {
+		// skip if this connection is not ready for new channels (usually means the connection is closing)
+		if !conn.isReady {
+			continue
+		}
+		if conn.hasCapacity(weight) {
 			return k
 		}
 	}
