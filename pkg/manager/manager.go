@@ -15,7 +15,8 @@ type IRCManager struct {
 
 	// map with connections mapped to incremental uint, we don't use a slice here since removing an element would change the keys after it
 	connections map[uint]*connection
-	channels    map[string]*IRCChannel
+	// map with channel names mapped to IRCChannel struct, we use this for executing commands such as Part quickly
+	channels map[string]*IRCChannel
 
 	wg *sync.WaitGroup
 	mx *sync.Mutex
@@ -153,7 +154,7 @@ func (m *IRCManager) Join(channelName string, weight int) error {
 	}
 
 	connectionKey := m.findConnectionWithCapacity(weight)
-	// keys only start at 1, so 0 means no suitable connection is available
+	// 0 means no suitable connection is available
 	if connectionKey == 0 {
 		connectionKey = m.addNewConnection()
 	}
@@ -168,6 +169,8 @@ func (m *IRCManager) Join(channelName string, weight int) error {
 	return m.connections[connectionKey].join(channel)
 }
 
+// findConnectionWithCapacity returns the key of a suitable connection, given the weight passed to it.
+// returns 0 if none is found
 func (m *IRCManager) findConnectionWithCapacity(weight int) uint {
 	for k, conn := range m.connections {
 		// skip if this connection is not ready for new channels (usually means the connection is closing)
