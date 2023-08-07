@@ -2,6 +2,7 @@ package manager
 
 import (
 	"github.com/seventv/twitch-irc-reader/pkg/irc"
+	"github.com/seventv/twitch-irc-reader/pkg/util"
 	"strings"
 	"sync"
 )
@@ -22,7 +23,7 @@ type IRCManager struct {
 	isClosing bool
 
 	// OrphanedChannels is a channel that sends a queue of IRC channels have lost their parent connection,
-	// without explicitly having called Part or Disconnect.
+	// without explicitly having called Part, Shutdown or Disconnect.
 	//
 	// This channel MUST be received!
 	OrphanedChannels chan *IRCChannel
@@ -33,7 +34,7 @@ type IRCManager struct {
 
 // New returns a new IRC manager, set up with the passed authentication.
 //
-// Requires you to call .OnMessage(), and listen to the OrphanedChannels channel, before you .Join() a channel
+// Requires you to set OnMessage, and listen to the OrphanedChannels channel, before you call Init
 func New(user, oauth string) *IRCManager {
 	return &IRCManager{
 		user:  user,
@@ -60,11 +61,39 @@ func (m *IRCManager) Init() error {
 	if m.isClosing {
 		return ErrManagerClosing
 	}
+
+	// Start first connection, so we're ready for the first Join call.
+	// Also, so we have at least 1 worker in m.wg before we call Wait()
+	m.mx.Lock()
+	m.addNewConnection()
+	m.mx.Unlock()
+
+	done := &util.Closer{}
+	done.Reset()
+
+	// wait for all connections to close, then send a signal to the worker to stop
 	go func() {
-		for channel := range m.partedChannels {
-			m.deleteChannel(channel.Name)
+		m.wg.Wait()
+		done.Close()
+	}()
+
+	// start worker
+	go func() {
+		for {
+			select {
+			// stop worker when Shutdown is completed
+			case <-done.C:
+				close(m.partedChannels)
+				return
+			// delete channels we Parted from memory
+			case channel := <-m.partedChannels:
+				m.mx.Lock()
+				m.deleteChannel(channel.Name)
+				m.mx.Unlock()
+			}
 		}
 	}()
+
 	return nil
 }
 
