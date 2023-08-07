@@ -78,24 +78,25 @@ func (m *IRCManager) Init() error {
 		done.Close()
 	}()
 
-	// start worker
-	go func() {
-		for {
-			select {
-			// stop worker when Shutdown is completed
-			case <-done.C:
-				close(m.partedChannels)
-				return
-			// delete channels we Parted from memory
-			case channel := <-m.partedChannels:
-				m.mx.Lock()
-				m.deleteChannel(channel.Name)
-				m.mx.Unlock()
-			}
-		}
-	}()
+	go m.startWorker(done)
 
 	return nil
+}
+
+func (m *IRCManager) startWorker(done *util.Closer) {
+	for {
+		select {
+		// stop worker when Shutdown is completed
+		case <-done.C:
+			close(m.partedChannels)
+			return
+		// delete channels we Parted from memory
+		case channel := <-m.partedChannels:
+			m.mx.Lock()
+			m.deleteChannel(channel.Name)
+			m.mx.Unlock()
+		}
+	}
 }
 
 // Shutdown stops & disconnects ALL connections in the manager, returns a WaitGroup to wait for graceful shutdown
@@ -204,20 +205,22 @@ func (m *IRCManager) addNewConnection() uint {
 
 	// create worker
 	m.wg.Add(1)
-	connectionKey := m.connectionCounter
-	go func() {
-		defer m.wg.Done()
-		err := con.connect()
-		if err == irc.ErrServerDisconnect {
-			// if we were disconnected by the server, flush all connected channels to the OrphanedChannels channel
-			con.flushChannels(m.OrphanedChannels)
-		}
-		m.deleteConnection(connectionKey)
-	}()
+	go m.startConnection(con, m.connectionCounter)
 
 	return m.connectionCounter
 }
 
+func (m *IRCManager) startConnection(con *connection, connectionKey uint) {
+	defer m.wg.Done()
+	err := con.connect()
+	if err == irc.ErrServerDisconnect {
+		// if we were disconnected by the server, flush all connected channels to the OrphanedChannels channel
+		con.flushChannels(m.OrphanedChannels)
+	}
+	m.deleteConnection(connectionKey)
+}
+
+// deleteConnection deletes a connection and all channels related to it
 func (m *IRCManager) deleteConnection(key uint) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
