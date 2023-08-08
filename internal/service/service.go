@@ -27,5 +27,22 @@ func (c *Controller) Init() error {
 	defer nc.Flush()
 	c.queue = nc
 
+	c.twitch = manager.New(c.cfg.Twitch.User, c.cfg.Twitch.Oauth)
+	c.twitch.OnMessage(c.OnMessage)
+
+	// TODO: feed back channels that got disconnected to the IRC
+	go func() {
+		for _ := range c.twitch.OrphanedChannels {
+
+		}
+	}()
+
+	err = c.twitch.Init()
+	if err != nil {
+		return err
+	}
+
+	// TODO: mongo & redis
+
 	return nil
 }
