@@ -19,7 +19,13 @@ func New(cfg *config.Config) *Controller {
 }
 
 func (c *Controller) Init() error {
-	// TODO: implement
+	nc, err := nats.Connect(c.cfg.Nats.URL)
+	if err != nil {
+		return err
+	}
+	// make sure all messages are actually written to NATS on shutdown
+	defer nc.Flush()
+	c.queue = nc
 
 	return nil
 }
