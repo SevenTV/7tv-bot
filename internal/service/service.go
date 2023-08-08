@@ -28,14 +28,10 @@ func (c *Controller) Init() error {
 	c.queue = nc
 
 	c.twitch = manager.New(c.cfg.Twitch.User, c.cfg.Twitch.Oauth)
-	c.twitch.OnMessage(c.OnMessage)
+	c.twitch.OnMessage(c.onMessage)
 
-	// TODO: feed back channels that got disconnected to the IRC
-	go func() {
-		for _ := range c.twitch.OrphanedChannels {
-
-		}
-	}()
+	// feed back twitch channels that got disconnected to the IRC
+	go c.handleOrphanedChannels()
 
 	err = c.twitch.Init()
 	if err != nil {
