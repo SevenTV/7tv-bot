@@ -11,7 +11,7 @@ twitch:
 nats:
   url: 0.0.0.0:4222
   topic:
-    raw: twitch-irc-reader-raw
+    raw: irc.raw.twitch
 
 mongo:
   connectionstring: mongodb://username:password@0.0.0.0:27017

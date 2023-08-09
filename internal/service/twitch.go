@@ -7,7 +7,15 @@ import (
 )
 
 func (c *Controller) onMessage(msg *irc.Message, err error) {
-	// TODO: implement
+	// publish message to nats topic,
+	// TODO: maybe do some filtering so only PRIVMSG goes through? We definitely don't want whispers to get published, cause they'll be replicated for every connection. And/or add different subject suffix for twitch channel?
+	err = c.queue.Publish(c.cfg.Nats.Topic.Raw, []byte(msg.String()))
+	if err != nil {
+		zap.L().Error(
+			"failed publish to NATS",
+			zap.String("error", err.Error()),
+		)
+	}
 }
 
 func (c *Controller) handleOrphanedChannels() {
