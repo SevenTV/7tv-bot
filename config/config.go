@@ -1,6 +1,11 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"github.com/gookit/config/v2"
+	"github.com/gookit/config/v2/yaml"
+)
 
 type Config struct {
 	LogLevel string
@@ -38,6 +43,18 @@ type Config struct {
 }
 
 func New() *Config {
-	// TODO: find good config loader
-	return &Config{}
+	cfg := &Config{}
+	config.AddDriver(yaml.Driver)
+
+	err := config.LoadFiles("config.yaml")
+	if err != nil {
+		panic(err)
+	}
+
+	err = config.Decode(cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	return cfg
 }
