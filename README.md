@@ -1,2 +1,3 @@
 # twitch-irc-reader
-Scalable service that reads Twitch's IRC and publishes it to a topic on NATS
+
+This is a work-in-progress implementation of Twitch's IRC providing functionality to other 7TV services for aggregating statistics on emote usage.
