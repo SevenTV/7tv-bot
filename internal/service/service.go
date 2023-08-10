@@ -8,9 +8,9 @@ import (
 )
 
 type Controller struct {
-	cfg    *config.Config
-	queue  *nats.Conn
-	twitch *manager.IRCManager
+	cfg       *config.Config
+	jetStream nats.JetStreamContext
+	twitch    *manager.IRCManager
 	// TODO: mongo, redis
 }
 
@@ -25,7 +25,15 @@ func (c *Controller) Init() error {
 	}
 	// make sure all messages are actually written to NATS on shutdown
 	defer nc.Flush()
-	c.queue = nc
+
+	js, _ := nc.JetStream()
+
+	err = c.ensureStream(js)
+	if err != nil {
+		return err
+	}
+
+	c.jetStream = js
 
 	c.twitch = manager.New(c.cfg.Twitch.User, c.cfg.Twitch.Oauth)
 	c.twitch.OnMessage(c.onMessage)
