@@ -26,8 +26,9 @@ type Config struct {
 		Collection       string
 	}
 	Nats struct {
-		URL   string
-		Topic struct {
+		URL    string
+		Stream string
+		Topic  struct {
 			Raw string
 			// provisions support for optional JSON or other parsed format output in the future
 		}

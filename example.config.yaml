@@ -10,6 +10,7 @@ twitch:
 
 nats:
   url: 0.0.0.0:4222
+  stream: twitchIRC
   topic:
     raw: irc.raw.twitch
 
