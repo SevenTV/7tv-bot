@@ -2,7 +2,7 @@ loglevel: info
 
 ratelimit:
   limit: 20
-  reset: 20
+  reset: 20s
 
 twitch:
   user: justinfan77777

@@ -44,14 +44,15 @@ type Config struct {
 
 func New() *Config {
 	cfg := &Config{}
-	config.AddDriver(yaml.Driver)
+	c := config.NewWithOptions("loader", config.ParseTime)
+	c.AddDriver(yaml.Driver)
 
-	err := config.LoadFiles("config.yaml")
+	err := c.LoadFiles("config.yaml")
 	if err != nil {
 		panic(err)
 	}
 
-	err = config.Decode(cfg)
+	err = c.Decode(cfg)
 	if err != nil {
 		panic(err)
 	}
