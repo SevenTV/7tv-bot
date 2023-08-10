@@ -19,12 +19,13 @@ func (c *Controller) onMessage(msg *irc.Message, err error) {
 	subject := c.cfg.Nats.Topic.Raw
 	subject += ".privmsg." + parseChannel(msg.String())
 
+	// set message ID as header, so we can filter out duplicate messages with JetStream
 	header := nats.Header{}
 	header.Add("Nats-Msg-Id", parseMessageId(msg.String()))
 
 	_, err = c.jetStream.PublishMsg(&nats.Msg{
 		Subject: subject,
-		Header:  nil,
+		Header:  header,
 		Data:    []byte(msg.String()),
 	})
 
