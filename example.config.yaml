@@ -16,6 +16,7 @@ nats:
 
 mongo:
   connectionstring: mongodb://username:password@0.0.0.0:27017
+  database: irc-reader
   collection: twitch-irc-channels
 
 health:

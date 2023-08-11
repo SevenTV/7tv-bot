@@ -23,6 +23,7 @@ type Config struct {
 	}
 	Mongo struct {
 		ConnectionString string
+		Database         string
 		Collection       string
 	}
 	Nats struct {
@@ -44,6 +45,7 @@ type Config struct {
 }
 
 func New() *Config {
+	// TODO: watch for config changes during runtime. For example twitch oauth.
 	cfg := &Config{}
 	c := config.NewWithOptions("loader", config.ParseTime)
 	c.AddDriver(yaml.Driver)
