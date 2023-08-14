@@ -11,7 +11,8 @@ type Config struct {
 	LogLevel string
 
 	RateLimit struct {
-		Limit int
+		Join  int
+		Auth  int
 		Reset time.Duration
 		Redis struct {
 			// TODO: implement redis
