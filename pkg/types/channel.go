@@ -9,7 +9,7 @@ type Channel struct {
 	Flags     uint32    `bson:"flags,omitempty"`
 	Username  string    `bson:"username"`
 	Platform  string    `bson:"platform"`
-	Weight    uint      `bson:"weight"`
+	Weight    int       `bson:"weight"`
 	CreatedAt time.Time `bson:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"`
 }
