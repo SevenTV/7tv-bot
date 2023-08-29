@@ -22,10 +22,10 @@ type RateLimiter struct {
 }
 
 // New returns a new RateLimiter configured with the passed parameters
-func New(addr string, joinLimit, authLimit int64, reset time.Duration) *RateLimiter {
+func New(rc *redis.Client, joinLimit, authLimit int64, reset time.Duration) *RateLimiter {
 	// TODO: add failoverClient option for redis
 	return &RateLimiter{
-		redisClient: redis.NewClient(&redis.Options{Addr: addr}),
+		redisClient: rc,
 		mx:          &sync.Mutex{},
 		joinLimit:   joinLimit,
 		authLimit:   authLimit,
