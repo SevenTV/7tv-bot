@@ -181,7 +181,7 @@ func (m *IRCManager) Join(channelName string, weight int) error {
 		connectionKey = m.addNewConnection()
 	}
 
-	channel := newIrcChannel(channelName, weight)
+	channel := NewIrcChannel(channelName, weight)
 	channel.connectionKey = connectionKey
 
 	m.channels[channel.Name] = channel
