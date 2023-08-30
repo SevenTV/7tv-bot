@@ -3,7 +3,7 @@ module github.com/seventv/twitch-irc-reader
 go 1.20
 
 require (
-	github.com/go-redis/redis_rate/v10 v10.0.1
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gookit/config/v2 v2.2.3
 	github.com/gookit/goutil v0.6.10
 	github.com/nats-io/nats.go v1.28.0
