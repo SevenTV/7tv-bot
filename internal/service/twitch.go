@@ -38,16 +38,22 @@ func (c *Controller) onMessage(msg *irc.Message, err error) {
 }
 
 func (c *Controller) handleOrphanedChannels() {
-	for ch := range c.twitch.OrphanedChannels {
-		// TODO: apply rate limit
-		err := c.twitch.Join(ch.Name, ch.Weight)
-		if err != nil {
-			zap.L().Error(
-				"failed to rejoin orphaned channel",
-				zap.String("error", err.Error()),
-				zap.String("channel", ch.Name),
-			)
-		}
+	// limit amount of workers
+	sem := make(chan struct{}, 5)
+	for channel := range c.twitch.OrphanedChannels {
+		sem <- struct{}{}
+		ch := channel
+		go func() {
+			err := c.twitch.Join(ch.Name, ch.Weight)
+			if err != nil {
+				zap.L().Error(
+					"failed to rejoin orphaned channel",
+					zap.String("error", err.Error()),
+					zap.String("channel", ch.Name),
+				)
+			}
+			<-sem
+		}()
 	}
 }
 
