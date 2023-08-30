@@ -6,7 +6,9 @@ import (
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 
+	"github.com/seventv/twitch-irc-reader/pkg/bitwise"
 	"github.com/seventv/twitch-irc-reader/pkg/irc"
+	"github.com/seventv/twitch-irc-reader/pkg/types"
 )
 
 func (c *Controller) onMessage(msg *irc.Message, err error) {
@@ -38,10 +40,8 @@ func (c *Controller) onMessage(msg *irc.Message, err error) {
 }
 
 func (c *Controller) handleOrphanedChannels() {
-	// limit amount of workers
-	sem := make(chan struct{}, 5)
 	for channel := range c.twitch.OrphanedChannels {
-		sem <- struct{}{}
+		c.joinSem <- struct{}{}
 		ch := channel
 		go func() {
 			err := c.twitch.Join(ch.Name, ch.Weight)
@@ -52,7 +52,32 @@ func (c *Controller) handleOrphanedChannels() {
 					zap.String("channel", ch.Name),
 				)
 			}
-			<-sem
+			<-c.joinSem
+		}()
+	}
+}
+
+func (c *Controller) joinChannels(channels []types.Channel) {
+	for _, channel := range channels {
+		c.joinSem <- struct{}{}
+		ch := channel
+		go func() {
+			// TODO: filter out channels based on user ID & shard ID, so we can spread the load across kubernetes statefulset
+
+			// make sure the channel is flagged to be joined
+			if !bitwise.Has(ch.Flags, bitwise.JOIN_IRC) {
+				return
+			}
+
+			err := c.twitch.Join(ch.Username, ch.Weight)
+			if err != nil {
+				zap.L().Error(
+					"failed to join channel",
+					zap.String("error", err.Error()),
+					zap.String("channel", ch.Username),
+				)
+			}
+			<-c.joinSem
 		}()
 	}
 }

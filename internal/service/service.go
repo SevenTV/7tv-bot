@@ -1,9 +1,12 @@
 package service
 
 import (
+	"context"
+
 	"github.com/nats-io/nats.go"
 
 	"github.com/seventv/twitch-irc-reader/config"
+	"github.com/seventv/twitch-irc-reader/internal/database"
 	"github.com/seventv/twitch-irc-reader/pkg/manager"
 )
 
@@ -12,10 +15,16 @@ type Controller struct {
 	jetStream nats.JetStreamContext
 	twitch    *manager.IRCManager
 	// TODO: mongo, redis
+
+	// limit amount of workers for joining channels
+	joinSem chan struct{}
 }
 
 func New(cfg *config.Config) *Controller {
-	return &Controller{cfg: cfg}
+	return &Controller{
+		cfg:     cfg,
+		joinSem: make(chan struct{}, 10),
+	}
 }
 
 func (c *Controller) Init() error {
@@ -46,7 +55,11 @@ func (c *Controller) Init() error {
 		return err
 	}
 
-	// TODO: mongo & redis
+	database.GetChannels(
+		context.Background(),
+		c.joinChannels,
+		20,
+	)
 
 	return nil
 }
