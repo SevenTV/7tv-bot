@@ -16,11 +16,16 @@ type Config struct {
 	LogLevel string
 
 	RateLimit struct {
-		Join  int
-		Auth  int
+		Join  int64
+		Auth  int64
 		Reset time.Duration
 		Redis struct {
-			// TODO: implement redis
+			Username  string
+			Password  string
+			Database  int
+			Sentinel  bool
+			Addresses []string
+			Master    string
 		}
 	}
 	Twitch struct {

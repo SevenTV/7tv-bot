@@ -4,17 +4,18 @@ import (
 	"context"
 
 	"github.com/nats-io/nats.go"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/seventv/twitch-irc-reader/config"
 	"github.com/seventv/twitch-irc-reader/internal/database"
 	"github.com/seventv/twitch-irc-reader/pkg/manager"
+	"github.com/seventv/twitch-irc-reader/pkg/ratelimit"
 )
 
 type Controller struct {
 	cfg       *config.Config
 	jetStream nats.JetStreamContext
 	twitch    *manager.IRCManager
-	// TODO: mongo, redis
 
 	// limit amount of workers for joining channels
 	joinSem chan struct{}
@@ -44,7 +45,18 @@ func (c *Controller) Init() error {
 
 	c.jetStream = js
 
-	c.twitch = manager.New(c.cfg.Twitch.User, c.cfg.Twitch.Oauth)
+	redisClient, err := c.initializeRedis()
+	if err != nil {
+		return err
+	}
+
+	// initialize twitch IRC manager with ratelimit
+	c.twitch = manager.New(c.cfg.Twitch.User, c.cfg.Twitch.Oauth).
+		WithLimit(ratelimit.New(
+			redisClient,
+			c.cfg.RateLimit.Join,
+			c.cfg.RateLimit.Auth,
+			c.cfg.RateLimit.Reset))
 	c.twitch.OnMessage(c.onMessage)
 
 	// watch for config changes to OAuth
@@ -67,4 +79,16 @@ func (c *Controller) Init() error {
 	)
 
 	return nil
+}
+
+func (c *Controller) initializeRedis() (*redis.Client, error) {
+	return ratelimit.RedisClient(ratelimit.RedisOptions{
+		MasterName: c.cfg.RateLimit.Redis.Master,
+		Username:   c.cfg.RateLimit.Redis.Username,
+		Password:   c.cfg.RateLimit.Redis.Password,
+		Database:   c.cfg.RateLimit.Redis.Database,
+		Addresses:  c.cfg.RateLimit.Redis.Addresses,
+		Sentinel:   c.cfg.RateLimit.Redis.Sentinel,
+		EnableSync: true,
+	})
 }

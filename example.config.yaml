@@ -4,6 +4,14 @@ ratelimit:
   join: 20
   auth: 20
   reset: 10s
+  redis:
+    username: user
+    password: password
+    database: 1
+    sentinel: false
+    addresses:
+      - redis://0.0.0.0:6379
+    master: ""
 
 twitch:
   user: justinfan77777
