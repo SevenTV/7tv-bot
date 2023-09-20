@@ -9,6 +9,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// OnChange is called when a config change is detected, can be set during runtime
+var OnChange func()
+
 type Config struct {
 	LogLevel string
 
@@ -48,7 +51,6 @@ type Config struct {
 }
 
 func New() *Config {
-	// TODO: watch for config changes during runtime. For example twitch oauth.
 	cfg := &Config{}
 	loader := config.NewWithOptions("loader", config.ParseTime)
 	loader.AddDriver(yaml.Driver)
@@ -101,6 +103,10 @@ func watchConfig(cfg *Config, loader *config.Config) error {
 					panic(err)
 				}
 
+				if OnChange == nil {
+					continue
+				}
+				OnChange()
 			case err, _ := <-watcher.Errors:
 				if err != nil {
 					zap.L().Error("watch config", zap.String("error", err.Error()))

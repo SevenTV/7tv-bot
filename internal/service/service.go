@@ -47,6 +47,11 @@ func (c *Controller) Init() error {
 	c.twitch = manager.New(c.cfg.Twitch.User, c.cfg.Twitch.Oauth)
 	c.twitch.OnMessage(c.onMessage)
 
+	// watch for config changes to OAuth
+	config.OnChange = func() {
+		c.twitch.UpdateOauth(c.cfg.Twitch.Oauth)
+	}
+
 	// feed back twitch channels that got disconnected to the IRC
 	go c.handleOrphanedChannels()
 

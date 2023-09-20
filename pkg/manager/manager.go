@@ -58,6 +58,11 @@ func New(user, oauth string) *IRCManager {
 	}
 }
 
+// UpdateOauth changes the oauth used for future new connections
+func (m *IRCManager) UpdateOauth(oauth string) {
+	m.oauth = oauth
+}
+
 // WithLimit adds a rate limiter to an IRCManager
 func (m *IRCManager) WithLimit(limiter RateLimiter) *IRCManager {
 	m.rateLimiter = limiter
