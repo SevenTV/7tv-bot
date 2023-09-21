@@ -44,8 +44,6 @@ func UpsertChannel(ctx context.Context, channel types.Channel) error {
 	filter := bson.D{{"user_id", channel.ID}}
 	update := bson.D{{"$set", channel}}
 	opts := options.Update().SetUpsert(true)
-	_, err := collection.UpdateOne(context.TODO(), filter, update, opts)
+	_, err := collection.UpdateOne(ctx, filter, update, opts)
 	return err
-
-	// TODO: implement
 }
