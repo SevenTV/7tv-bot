@@ -81,6 +81,11 @@ func (c *Controller) Init() error {
 	return nil
 }
 
+func (c *Controller) Shutdown() {
+	wg := c.twitch.Shutdown()
+	wg.Wait()
+}
+
 func (c *Controller) initializeRedis() (*redis.Client, error) {
 	return ratelimit.RedisClient(ratelimit.RedisOptions{
 		MasterName: c.cfg.RateLimit.Redis.Master,
