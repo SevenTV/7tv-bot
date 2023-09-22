@@ -1,10 +1,12 @@
 package manager
 
 import (
-	"github.com/seventv/twitch-irc-reader/pkg/irc"
-	"github.com/seventv/twitch-irc-reader/pkg/util"
+	"context"
 	"strings"
 	"sync"
+
+	"github.com/seventv/twitch-irc-reader/pkg/irc"
+	"github.com/seventv/twitch-irc-reader/pkg/util"
 )
 
 // IRCManager manages multiple IRC connections & keeps track of their connected channels
@@ -31,6 +33,8 @@ type IRCManager struct {
 	partedChannels   chan *IRCChannel
 
 	onMessage func(*irc.Message, error)
+
+	rateLimiter RateLimiter
 }
 
 // New returns a new IRC manager, set up with the passed authentication.
@@ -49,7 +53,20 @@ func New(user, oauth string) *IRCManager {
 
 		wg: &sync.WaitGroup{},
 		mx: &sync.Mutex{},
+
+		rateLimiter: &NoLimit{},
 	}
+}
+
+// UpdateOauth changes the oauth used for future new connections
+func (m *IRCManager) UpdateOauth(oauth string) {
+	m.oauth = oauth
+}
+
+// WithLimit adds a rate limiter to an IRCManager
+func (m *IRCManager) WithLimit(limiter RateLimiter) *IRCManager {
+	m.rateLimiter = limiter
+	return m
 }
 
 // Init does some basic checks to make sure the IRCManager is ready to use.
@@ -147,6 +164,11 @@ func (m *IRCManager) Join(channelName string, weight int) error {
 		return ErrManagerClosing
 	}
 
+	err := m.rateLimiter.WaitToJoin(context.TODO())
+	if err != nil {
+		return err
+	}
+
 	m.mx.Lock()
 	// if channel is already joined, return error
 	if _, found := m.channels[strings.ToLower(channelName)]; found {
@@ -157,10 +179,14 @@ func (m *IRCManager) Join(channelName string, weight int) error {
 	connectionKey := m.findConnectionWithCapacity(weight)
 	// 0 means no suitable connection is available
 	if connectionKey == 0 {
+		err = m.rateLimiter.WaitToAuth(context.TODO())
+		if err != nil {
+			return err
+		}
 		connectionKey = m.addNewConnection()
 	}
 
-	channel := newIrcChannel(channelName, weight)
+	channel := NewIrcChannel(channelName, weight)
 	channel.connectionKey = connectionKey
 
 	m.channels[channel.Name] = channel
