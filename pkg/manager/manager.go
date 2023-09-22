@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/seventv/twitch-irc-reader/pkg/irc"
-	"github.com/seventv/twitch-irc-reader/pkg/util"
+	"github.com/seventv/7tv-bot/pkg/irc"
+	"github.com/seventv/7tv-bot/pkg/util"
 )
 
 // IRCManager manages multiple IRC connections & keeps track of their connected channels

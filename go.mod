@@ -1,4 +1,4 @@
-module github.com/seventv/twitch-irc-reader
+module github.com/seventv/7tv-bot
 
 go 1.20
 

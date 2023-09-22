@@ -1,9 +1,10 @@
 package manager
 
 import (
-	"github.com/seventv/twitch-irc-reader/pkg/irc"
 	"strings"
 	"sync"
+
+	"github.com/seventv/7tv-bot/pkg/irc"
 )
 
 var (

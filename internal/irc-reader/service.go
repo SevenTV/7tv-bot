@@ -6,10 +6,10 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/seventv/twitch-irc-reader/config"
-	"github.com/seventv/twitch-irc-reader/internal/database"
-	"github.com/seventv/twitch-irc-reader/pkg/manager"
-	"github.com/seventv/twitch-irc-reader/pkg/ratelimit"
+	"github.com/seventv/7tv-bot/internal/database"
+	"github.com/seventv/7tv-bot/internal/irc-reader/config"
+	"github.com/seventv/7tv-bot/pkg/manager"
+	"github.com/seventv/7tv-bot/pkg/ratelimit"
 )
 
 type Controller struct {

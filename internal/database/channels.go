@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/seventv/twitch-irc-reader/pkg/types"
+	"github.com/seventv/7tv-bot/pkg/types"
 )
 
 // GetChannels gets all channels, and runs the given callback in batches,

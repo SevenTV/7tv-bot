@@ -1,9 +1,10 @@
 package manager
 
 import (
-	"github.com/seventv/twitch-irc-reader/pkg/irc"
 	"reflect"
 	"testing"
+
+	"github.com/seventv/7tv-bot/pkg/irc"
 )
 
 func Test_connection_handleMessages(t *testing.T) {

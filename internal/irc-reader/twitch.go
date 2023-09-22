@@ -6,9 +6,9 @@ import (
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 
-	"github.com/seventv/twitch-irc-reader/pkg/bitwise"
-	"github.com/seventv/twitch-irc-reader/pkg/irc"
-	"github.com/seventv/twitch-irc-reader/pkg/types"
+	"github.com/seventv/7tv-bot/pkg/bitwise"
+	"github.com/seventv/7tv-bot/pkg/irc"
+	"github.com/seventv/7tv-bot/pkg/types"
 )
 
 func (c *Controller) onMessage(msg *irc.Message, err error) {
