@@ -3,13 +3,14 @@ package irc
 import (
 	"bufio"
 	"crypto/tls"
-	"github.com/seventv/twitch-irc-reader/pkg/util"
 	"io"
 	"net"
 	"net/textproto"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/seventv/7tv-bot/pkg/util"
 )
 
 var (
