@@ -1,4 +1,4 @@
-package service
+package irc_reader
 
 import (
 	"errors"

@@ -9,7 +9,7 @@ import (
 
 	"github.com/seventv/twitch-irc-reader/config"
 	"github.com/seventv/twitch-irc-reader/internal/database"
-	"github.com/seventv/twitch-irc-reader/internal/service"
+	"github.com/seventv/twitch-irc-reader/internal/irc-reader"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 	}
 	database.EnsureCollection(cfg.Mongo.Collection)
 
-	svc := service.New(cfg)
+	svc := irc_reader.New(cfg)
 	err = svc.Init()
 	if err != nil {
 		panic(err)
