@@ -6,8 +6,8 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/seventv/7tv-bot/config"
 	"github.com/seventv/7tv-bot/internal/database"
+	"github.com/seventv/7tv-bot/internal/irc-reader/config"
 	"github.com/seventv/7tv-bot/pkg/manager"
 	"github.com/seventv/7tv-bot/pkg/ratelimit"
 )
