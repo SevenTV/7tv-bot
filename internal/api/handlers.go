@@ -114,6 +114,33 @@ func (s *Server) postChannel(w http.ResponseWriter, r *http.Request) {
 	writeError(w, http.StatusCreated, "Created")
 }
 
+func (s *Server) deleteChannel(w http.ResponseWriter, r *http.Request) {
+	query, ok := r.URL.Query()["id"]
+	if !ok {
+		writeError(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	if len(query) == 0 {
+		writeError(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	id, err := strconv.Atoi(query[0])
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	err = database.DeleteChannel(context.TODO(), int64(id))
+	if err != nil {
+		if errors.Is(err, database.ErrChannelNotFound) {
+			writeError(w, http.StatusNoContent, "No channel found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	w.Write([]byte("OK"))
+}
+
 func notImplemented(w http.ResponseWriter, r *http.Request) {
 	writeError(w, http.StatusNotImplemented, "Not implemented")
 }

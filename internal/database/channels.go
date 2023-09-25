@@ -79,3 +79,14 @@ func UpsertChannel(ctx context.Context, channel types.Channel) error {
 	_, err := collection.UpdateOne(ctx, filter, update, opts)
 	return err
 }
+
+func DeleteChannel(ctx context.Context, id int64) error {
+	res, err := collection.DeleteOne(ctx, bson.D{{"user_id", id}})
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
+		return ErrChannelNotFound
+	}
+	return nil
+}

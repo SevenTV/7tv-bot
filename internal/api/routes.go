@@ -26,6 +26,7 @@ func (s *Server) routes() []router.Route {
 			Handler:     s.postChannel,
 			Description: "Set channel using JSON body, gives error if channel already exists.",
 		},
+		// TODO: PUT channel
 		{
 			Pattern:     "/twitch/channel",
 			Method:      http.MethodPut,
@@ -35,7 +36,7 @@ func (s *Server) routes() []router.Route {
 		{
 			Pattern:     "/twitch/channel",
 			Method:      http.MethodDelete,
-			Handler:     notImplemented,
+			Handler:     s.deleteChannel,
 			Description: "Delete channel matching the id (?id=) url query parameter.",
 		},
 	}
