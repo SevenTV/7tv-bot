@@ -39,6 +39,15 @@ func GetChannels(ctx context.Context, cb func([]types.Channel), batchSize int) e
 	return nil
 }
 
+func GetChannel(ctx context.Context, filter bson.D) (*types.Channel, error) {
+	channel := &types.Channel{}
+	err := collection.FindOne(ctx, filter).Decode(channel)
+	if err != nil {
+		return nil, err
+	}
+	return channel, nil
+}
+
 // UpsertChannel inserts a channel, or updates it if it already exists
 func UpsertChannel(ctx context.Context, channel types.Channel) error {
 	filter := bson.D{{"user_id", channel.ID}}
