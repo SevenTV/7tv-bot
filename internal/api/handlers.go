@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -12,11 +13,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/seventv/7tv-bot/internal/database"
+	"github.com/seventv/7tv-bot/pkg/types"
+	"github.com/seventv/7tv-bot/pkg/util"
 )
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	w.WriteHeader(status)
-	// TODO: no body returned for response
 	if len(message) != 0 {
 		w.Write([]byte(message))
 	}
@@ -81,4 +83,37 @@ func (s *Server) getChannel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(data)
+}
+
+func (s *Server) postChannel(w http.ResponseWriter, r *http.Request) {
+	channel := types.Channel{}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	err = json.Unmarshal(body, &channel)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	if !util.VerifyChannel(channel) {
+		writeError(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+
+	err = database.InsertChannel(context.TODO(), channel)
+	if err != nil {
+		if errors.Is(err, database.ErrChannelAlreadyExists) {
+			writeError(w, http.StatusAlreadyReported, "Already reported")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	writeError(w, http.StatusCreated, "Created")
+}
+
+func notImplemented(w http.ResponseWriter, r *http.Request) {
+	writeError(w, http.StatusNotImplemented, "Not implemented")
 }
