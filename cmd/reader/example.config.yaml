@@ -5,12 +5,12 @@ ratelimit:
   auth: 20
   reset: 10s
   redis:
-    username: user
+    username: default
     password: password
     database: 1
     sentinel: false
     addresses:
-      - redis://0.0.0.0:6379
+      - 0.0.0.0:6379
     master: ""
 
 twitch:
