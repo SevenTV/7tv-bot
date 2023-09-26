@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/nats-io/nats.go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -112,6 +113,15 @@ func (s *Server) postChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeError(w, http.StatusCreated, "Created")
+
+	// publish insert to NATS
+	header := make(nats.Header)
+	header.Add("OP", database.Insert)
+	s.nc.PublishMsg(&nats.Msg{
+		Data:    body,
+		Header:  header,
+		Subject: s.cfg.Nats.Topic.Api,
+	})
 }
 
 func (s *Server) deleteChannel(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +139,25 @@ func (s *Server) deleteChannel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Bad request")
 		return
 	}
+
+	// Get channel, to see if it exists & so we can pass the original channel to the IRC reader over NATS
+	filter := bson.D{{"user_id", int64(id)}}
+	channel, err := database.GetChannel(context.TODO(), filter)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			writeError(w, http.StatusNoContent, "No channel found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+
+	data, err := json.Marshal(channel)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+
 	err = database.DeleteChannel(context.TODO(), int64(id))
 	if err != nil {
 		if errors.Is(err, database.ErrChannelNotFound) {
@@ -139,6 +168,15 @@ func (s *Server) deleteChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write([]byte("OK"))
+
+	// publish deleted channel ID to NATS
+	header := make(nats.Header)
+	header.Add("OP", database.Delete)
+	s.nc.PublishMsg(&nats.Msg{
+		Data:    data,
+		Header:  header,
+		Subject: s.cfg.Nats.Topic.Api,
+	})
 }
 
 func notImplemented(w http.ResponseWriter, r *http.Request) {
