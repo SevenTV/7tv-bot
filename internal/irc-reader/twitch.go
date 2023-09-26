@@ -59,27 +59,31 @@ func (c *Controller) handleOrphanedChannels() {
 
 func (c *Controller) joinChannels(channels []types.Channel) {
 	for _, channel := range channels {
-		c.joinSem <- struct{}{}
-		ch := channel
-		go func() {
-			// TODO: filter out channels based on user ID & shard ID, so we can spread the load across kubernetes statefulset
-
-			// make sure the channel is flagged to be joined
-			if !bitwise.Has(ch.Flags, bitwise.JOIN_IRC) {
-				return
-			}
-
-			err := c.twitch.Join(ch.Username, ch.Weight)
-			if err != nil {
-				zap.L().Error(
-					"failed to join channel",
-					zap.String("error", err.Error()),
-					zap.String("channel", ch.Username),
-				)
-			}
-			<-c.joinSem
-		}()
+		c.joinChannel(channel)
 	}
+}
+
+func (c *Controller) joinChannel(channel types.Channel) {
+	c.joinSem <- struct{}{}
+	ch := channel
+	go func() {
+		// TODO: filter out channels based on user ID & shard ID, so we can spread the load across kubernetes statefulset
+
+		// make sure the channel is flagged to be joined
+		if !bitwise.Has(ch.Flags, bitwise.JOIN_IRC) {
+			return
+		}
+
+		err := c.twitch.Join(ch.Username, ch.Weight)
+		if err != nil {
+			zap.L().Error(
+				"failed to join channel",
+				zap.String("error", err.Error()),
+				zap.String("channel", ch.Username),
+			)
+		}
+		<-c.joinSem
+	}()
 }
 
 // parses out the channel name from a PRIVMSG,

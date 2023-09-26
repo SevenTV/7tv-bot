@@ -78,6 +78,9 @@ func (c *Controller) Init() error {
 		20,
 	)
 
+	// get changes to database over NATS
+	c.watchChanges(nc)
+
 	return nil
 }
 

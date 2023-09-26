@@ -1,8 +1,6 @@
 package config
 
 import (
-	"time"
-
 	"github.com/fsnotify/fsnotify"
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/yaml"
@@ -14,19 +12,8 @@ var OnChange func()
 
 type Config struct {
 	LogLevel string
-
-	RateLimit struct {
-		Join  int64
-		Auth  int64
-		Reset time.Duration
-		Redis struct {
-			Username  string
-			Password  string
-			Database  int
-			Sentinel  bool
-			Addresses []string
-			Master    string
-		}
+	Http     struct {
+		Port string
 	}
 	Twitch struct {
 		User  string
@@ -38,12 +25,9 @@ type Config struct {
 		Collection       string
 	}
 	Nats struct {
-		URL    string
-		Stream string
-		Topic  struct {
-			Raw string
+		URL   string
+		Topic struct {
 			Api string
-			// provisions support for optional JSON or other parsed format output in the future
 		}
 	}
 	Health struct {
