@@ -42,6 +42,7 @@ type Config struct {
 		Stream string
 		Topic  struct {
 			Raw string
+			Api string
 			// provisions support for optional JSON or other parsed format output in the future
 		}
 	}

@@ -24,6 +24,12 @@ type Config struct {
 		Database         string
 		Collection       string
 	}
+	Nats struct {
+		URL   string
+		Topic struct {
+			Api string
+		}
+	}
 	Health struct {
 		Enabled bool
 		Port    string

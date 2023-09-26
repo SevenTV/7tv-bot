@@ -12,6 +12,11 @@ mongo:
   database: irc-reader
   collection: twitch-irc-channels
 
+nats:
+  url: 0.0.0.0:4222
+  topic:
+    api: irc.api.twitch
+
 health:
   enabled: false
   port: 0

@@ -22,6 +22,7 @@ nats:
   stream: twitchIRC
   topic:
     raw: irc.raw.twitch
+    api: irc.api.twitch
 
 mongo:
   connectionstring: mongodb://username:password@0.0.0.0:27017
