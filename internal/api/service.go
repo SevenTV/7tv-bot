@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 
 	"github.com/seventv/7tv-bot/internal/api/config"
@@ -14,6 +15,7 @@ type Server struct {
 	cfg    *config.Config
 	router *router.Router
 	wg     sync.WaitGroup
+	nc     *nats.Conn
 }
 
 func New(cfg *config.Config) *Server {
@@ -25,6 +27,12 @@ func (s *Server) Init() error {
 	server := http.Server{
 		Addr:    "0.0.0.0:" + s.cfg.Http.Port,
 		Handler: s.router.Router,
+	}
+
+	var err error
+	s.nc, err = nats.Connect(s.cfg.Nats.URL)
+	if err != nil {
+		zap.S().Fatal("failed to connect to NATS: ", err)
 	}
 
 	go func() {
