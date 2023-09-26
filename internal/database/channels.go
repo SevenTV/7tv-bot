@@ -42,13 +42,11 @@ func GetChannels(ctx context.Context, cb func([]types.Channel), batchSize int) e
 	return nil
 }
 
+// GetChannel finds a single channel based on the BSON filter provided
 func GetChannel(ctx context.Context, filter bson.D) (*types.Channel, error) {
 	channel := &types.Channel{}
 	err := collection.FindOne(ctx, filter).Decode(channel)
-	if err != nil {
-		return nil, err
-	}
-	return channel, nil
+	return channel, err
 }
 
 // InsertChannel inserts a channel, returns error if it already exists
@@ -80,6 +78,7 @@ func UpsertChannel(ctx context.Context, channel types.Channel) error {
 	return err
 }
 
+// DeleteChannel deletes a channel by ID, returns an error if the channel ID was not found
 func DeleteChannel(ctx context.Context, id int64) error {
 	res, err := collection.DeleteOne(ctx, bson.D{{"user_id", id}})
 	if err != nil {
