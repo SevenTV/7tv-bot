@@ -3,7 +3,6 @@ package aggregator
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -89,7 +88,7 @@ func (s *Service) ensureConsumer(js nats.JetStreamContext) error {
 func (s *Service) ensureStream(js nats.JetStreamContext) error {
 	cfg := &nats.StreamConfig{
 		Name:      s.cfg.Nats.Stream,
-		Subjects:  []string{fmt.Sprintf("%v.>", s.cfg.Nats.Topic.Raw)},
+		Subjects:  []string{s.cfg.Nats.Topic.Raw},
 		Retention: nats.InterestPolicy,
 		Discard:   nats.DiscardNew,
 		// TODO: 0 seconds sets this to default value (2 min), find optimal value for our case
