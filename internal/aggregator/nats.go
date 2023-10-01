@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
 )
 
 func (s *Service) subscribe(ctx context.Context, cb func(msg *nats.Msg) error) error {
@@ -35,6 +36,7 @@ func (s *Service) subscribe(ctx context.Context, cb func(msg *nats.Msg) error) e
 
 		err = cb(msg)
 		if err != nil {
+			zap.S().Error("couldn't process message from NATS", err)
 			// If we cannot process the message, send Nak, so another consumer can try again.
 			// we don't need to explicitly do this, but it does speed things up
 			_ = msg.Nak()
