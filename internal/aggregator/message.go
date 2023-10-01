@@ -26,9 +26,9 @@ type Message struct {
 		Username string
 		ID       string
 	}
-	Type    string
-	Message string
-	Raw     string
+	Type         string
+	MessageWords []string
+	Raw          string
 }
 
 func parseMessage(data []byte) (*Message, error) {
@@ -76,7 +76,8 @@ func parseMessage(data []byte) (*Message, error) {
 		return nil, irc.ErrPartialMessage
 	}
 
-	msg.Message = strings.TrimPrefix(split[i], ":")
+	msg.MessageWords = split[i:]
+	msg.MessageWords[0] = strings.TrimPrefix(msg.MessageWords[0], ":")
 
 	return msg, nil
 }
