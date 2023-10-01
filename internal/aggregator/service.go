@@ -1,6 +1,10 @@
 package aggregator
 
-import "github.com/seventv/7tv-bot/internal/aggregator/config"
+import (
+	"context"
+
+	"github.com/seventv/7tv-bot/internal/aggregator/config"
+)
 
 type Service struct {
 	cfg *config.Config
@@ -11,6 +15,10 @@ func New(cfg *config.Config) *Service {
 }
 
 func (s *Service) Init() error {
-
+	// TODO: database
+	err := s.subscribe(context.TODO(), s.handleMessage)
+	if err != nil {
+		return err
+	}
 	return nil
 }
