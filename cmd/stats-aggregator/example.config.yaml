@@ -9,7 +9,7 @@ nats:
 
 mongo:
   connectionstring: mongodb://username:password@0.0.0.0:27017
-  database: irc-stats
+  database: 7tv-bot
   collection: twitch-irc-stats
 
 health:
