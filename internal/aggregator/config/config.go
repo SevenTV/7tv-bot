@@ -11,8 +11,9 @@ import (
 var OnChange func()
 
 type Config struct {
-	LogLevel string
-	Mongo    struct {
+	LogLevel   string
+	Maxworkers int
+	Mongo      struct {
 		ConnectionString string
 		Database         string
 		Collection       string

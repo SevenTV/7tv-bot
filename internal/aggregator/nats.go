@@ -19,6 +19,9 @@ func (s *Service) subscribe(ctx context.Context, cb func(msg *nats.Msg) error) e
 		panic(err)
 	}
 
+	// limit the amount of workers for the callback
+	sem := make(chan struct{}, s.cfg.Maxworkers)
+
 	for {
 		msg, err := sub.NextMsgWithContext(ctx)
 		if err != nil {
@@ -33,16 +36,20 @@ func (s *Service) subscribe(ctx context.Context, cb func(msg *nats.Msg) error) e
 			_ = msg.Nak()
 			continue
 		}
-
-		err = cb(msg)
-		if err != nil {
-			zap.S().Error("couldn't process message from NATS", err)
-			// If we cannot process the message, send Nak, so another consumer can try again.
-			// we don't need to explicitly do this, but it does speed things up
-			_ = msg.Nak()
-			continue
-		}
-		_ = msg.Ack()
+		sem <- struct{}{}
+		go func() {
+			err := cb(msg)
+			if err != nil {
+				zap.S().Error("couldn't process message from NATS", err)
+				// If we cannot process the message, send Nak, so another consumer can try again.
+				// we don't need to explicitly do this, but it does speed things up
+				_ = msg.Nak()
+				<-sem
+				return
+			}
+			_ = msg.Ack()
+			<-sem
+		}()
 	}
 	return nil
 }
