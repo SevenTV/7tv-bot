@@ -9,37 +9,35 @@ import (
 	"time"
 
 	"github.com/seventv/api/data/model"
+
+	"github.com/seventv/7tv-bot/pkg/types"
 )
 
-type countedEmote struct {
-	count int
-	emote model.ActiveEmoteModel
-}
-
-func countEmotes(msg *Message) ([]countedEmote, error) {
-	// TODO: global emotes & personal emotes
-	emotes, err := getEmotesForChannel(msg.Room.ID)
+func countEmotes(msg *Message) ([]types.CountedEmote, error) {
+	// TODO: personal emotes
+	emotes, err := getGlobalEmotes()
+	if err != nil {
+		return nil, err
+	}
+	channelEmotes, err := getEmotesForChannel(msg.Room.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	var result []countedEmote
+	emotes = append(emotes, channelEmotes...)
 
-	// return if we don't have emotes for this channel
-	if len(emotes) == 0 {
-		return result, nil
-	}
+	var result []types.CountedEmote
 
 	for _, emote := range emotes {
-		counted := countedEmote{emote: emote}
+		counted := types.CountedEmote{Emote: emote}
 		for _, word := range msg.MessageWords {
 			if word != emote.Name {
 				continue
 			}
-			counted.count++
+			counted.Count++
 		}
 
-		if counted.count == 0 {
+		if counted.Count == 0 {
 			continue
 		}
 
@@ -123,4 +121,61 @@ func getEmotesByChannelId(channelID string) ([]model.ActiveEmoteModel, error) {
 	}
 
 	return userModel.EmoteSet.Emotes, nil
+}
+
+func getGlobalEmotes() ([]model.ActiveEmoteModel, error) {
+	mx.Lock()
+	defer mx.Unlock()
+
+	cache, ok := activeEmotesCache["global"]
+	if ok {
+		if time.Since(cache.expires) <= 0 {
+			return cache.emotes, nil
+		}
+	}
+
+	emotes, err := requestGlobalEmotes()
+	if err != nil {
+		return nil, err
+	}
+	activeEmotesCache["global"] = emoteCache{
+		expires: time.Now().Add(5 * time.Minute),
+		emotes:  emotes,
+	}
+
+	return emotes, nil
+}
+
+func requestGlobalEmotes() ([]model.ActiveEmoteModel, error) {
+	req, err := http.NewRequest("GET", "https://7tv.io/v3/emote-sets/global", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, ErrUnexpectedStatus
+	}
+
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	setModel := &model.EmoteSetModel{}
+	err = json.Unmarshal(body, setModel)
+	if err != nil {
+		return nil, err
+	}
+
+	if setModel.Emotes == nil || len(setModel.Emotes) == 0 {
+		return nil, ErrIncompleteResponse
+	}
+
+	return setModel.Emotes, nil
 }
