@@ -37,10 +37,10 @@ resource "kubernetes_secret" "app" {
   }
 }
 
-resource "kubernetes_deployment" {
+resource "kubernetes_deployment" "app" {
   metadata {
     name      = "stats-oauth"
-    namespace = var.namespace
+    namespace = data.kubernetes_namespace.app.metadata[0].name
     labels = {
       app = "stats-oauth"
     }
@@ -58,12 +58,12 @@ resource "kubernetes_deployment" {
 
   spec {
     selector {
-
+      match_labels = {
+        app = "stats-oauth"
+      }
     }
 
-    strategy {
-
-    }
+    replicas = 1
 
     template {
       metadata {

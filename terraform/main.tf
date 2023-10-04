@@ -1,7 +1,12 @@
 terraform {
+
   backend "remote" {
     hostname     = "app.terraform.io"
-    organization = "seventv-stats"
+    organization = "7tv"
+
+    workspaces {
+      prefix = "seventv-stats-"
+    }
   }
 }
 
