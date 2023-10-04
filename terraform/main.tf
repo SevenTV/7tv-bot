@@ -13,7 +13,7 @@ locals {
 }
 
 module "oauth" {
-  source = "./${local.app}"
+  source = "./oauth"
 
   twitch_client_id     = var.twitch_client_id
   twitch_client_secret = var.twitch_client_secret
