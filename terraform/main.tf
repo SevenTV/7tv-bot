@@ -26,7 +26,7 @@ module "oauth" {
 }
 
 module "irc-reader" {
-  source                     = "./reader"
+  source                     = "./irc-reader"
   oauth_secret               = var.oauth_secret
   twitch_username            = var.twitch_username
   ratelimit_join             = var.ratelimit_join

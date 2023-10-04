@@ -4,7 +4,7 @@ BUILDER := "unknown"
 VERSION := "unknown"
 
 build:
-	GOOS=linux GOARCH=amd64 go build -v -ldflags "-X 'main.Version=${VERSION}' -X 'main.Unix=$(shell date +%s)' -X 'main.User=${BUILDER}'" -o out/reader cmd/reader/*.go
+	GOOS=linux GOARCH=amd64 go build -v -ldflags "-X 'main.Version=${VERSION}' -X 'main.Unix=$(shell date +%s)' -X 'main.User=${BUILDER}'" -o out/irc-reader cmd/irc-reader/*.go
 
 lint:
 	golangci-lint run --go=1.18

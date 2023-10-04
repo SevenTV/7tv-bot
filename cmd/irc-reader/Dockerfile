@@ -29,7 +29,7 @@ COPY --from=go /go /go
 
 COPY go.mod .
 COPY go.sum .
-COPY cmd/reader/Makefile Makefile
+COPY cmd/irc-reader/Makefile Makefile
 
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH" && \
     make deps
@@ -61,4 +61,4 @@ RUN apt-get update && \
 
 COPY --from=go-builder /tmp/build/out .
 
-CMD ./reader
+CMD ./irc-reader
