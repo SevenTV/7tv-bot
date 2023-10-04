@@ -44,17 +44,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up Go
-        uses: actions@setup-go@v3
-        with:
-          go-version: 1.21
-
       - name: Checkout
-        uses: actions@checkout@v3
-
-      - name: Make
-        run: sudo apt-get install make
-
+        uses: actions/checkout@v3
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
