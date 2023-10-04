@@ -41,3 +41,13 @@ module "irc-reader" {
   mongo_bot_database         = var.mongo_bot_database
   mongo_bot_users_collection = var.mongo_bot_users_collection
 }
+
+module "bot-api" {
+  source             = "./bot-api"
+  image_url_template = local.image_url_template
+  infra              = local.infra
+
+  nats_bot_api_subject       = var.nats_bot_api_subject
+  mongo_bot_database         = var.mongo_bot_database
+  mongo_bot_users_collection = var.mongo_bot_users_collection
+}
