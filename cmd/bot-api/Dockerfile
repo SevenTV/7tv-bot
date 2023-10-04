@@ -61,4 +61,4 @@ RUN apt-get update && \
 
 COPY --from=go-builder /tmp/build/out .
 
-CMD ./api
+CMD ./bot-api
