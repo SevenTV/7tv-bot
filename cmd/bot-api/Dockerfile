@@ -29,7 +29,7 @@ COPY --from=go /go /go
 
 COPY go.mod .
 COPY go.sum .
-COPY cmd/api/Makefile Makefile
+COPY cmd/bot-api/Makefile Makefile
 
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH" && \
     make deps
