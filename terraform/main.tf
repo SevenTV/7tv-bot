@@ -26,7 +26,10 @@ module "oauth" {
 }
 
 module "irc-reader" {
-  source                     = "./irc-reader"
+  source             = "./irc-reader"
+  image_url_template = local.image_url_template
+  infra              = local.infra
+
   oauth_secret               = var.oauth_secret
   twitch_username            = var.twitch_username
   ratelimit_join             = var.ratelimit_join
@@ -37,5 +40,4 @@ module "irc-reader" {
   nats_twitch_irc_stream     = var.nats_twitch_irc_stream
   mongo_bot_database         = var.mongo_bot_database
   mongo_bot_users_collection = var.mongo_bot_users_collection
-  infra                      = local.infra
 }
