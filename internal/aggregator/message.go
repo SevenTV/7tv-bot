@@ -1,18 +1,36 @@
 package aggregator
 
 import (
+	"context"
 	"strings"
 
 	"github.com/nats-io/nats.go"
 
+	emotedb "github.com/seventv/7tv-bot/pkg/database/emotes"
 	"github.com/seventv/7tv-bot/pkg/irc"
 )
 
 func (s *Service) handleMessage(natsMsg *nats.Msg) error {
+	// TODO: metrics
+	//start := time.Now()
+
 	msg, err := parseMessage(natsMsg.Data)
 	if err != nil {
 		return err
 	}
+
+	counted, err := countEmotes(msg)
+	if err != nil {
+		return err
+	}
+
+	for _, emote := range counted {
+		err = emotedb.IncrementEmote(context.TODO(), emote)
+		if err != nil {
+			return err
+		}
+	}
+	// TODO: push counted to NATS for realtime emote display
 
 	return nil
 }
