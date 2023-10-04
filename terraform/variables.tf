@@ -19,10 +19,6 @@ variable "namespace" {
   default = "app"
 }
 
-variable "app" {
-  type = string
-}
-
 variable "image_pull_policy" {
   type    = string
   default = "Always"

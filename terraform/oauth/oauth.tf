@@ -75,7 +75,7 @@ resource "kubernetes_deployment" "app" {
       spec {
         container {
           name  = "stats-oauth"
-          image = join("", var.image_url_prefix, "/oauth", ":latest")
+          image = replace(local.image_url_template, "#APP", "oauth")
 
           port {
             name           = "http"

@@ -15,7 +15,7 @@ variable "twitch_client_secret" {
   default = ""
 }
 
-variable "image_url_prefix" {
+variable "image_url_template" {
   type    = string
   default = ""
 }
