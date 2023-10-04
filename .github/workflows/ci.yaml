@@ -1,0 +1,125 @@
+name: Build & Deploy Stats
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Which app to deploy"
+        required: true
+        type: choice
+        options:
+          - oauth
+          - none
+      deploy:
+        description: "Which environment to deploy to"
+        required: true
+        default: "none"
+        type: choice
+        options:
+          - prod
+          - test
+          - none
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEPLOY: ${{ (inputs.deploy != 'none' && inputs.deploy) || ((github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'prod') || (github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'master') && 'prod') || ((github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'test') || (github.event_name == 'push' && github.ref_type == 'branch' && github.ref_name == 'dev') || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'staged')) && 'test') || 'none' }}
+  APP: ${{ inputs.app }}
+
+jobs:
+  build:
+    name: Lint & Build Stats
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Go
+        uses: actions@setup-go@v3
+        with:
+          go-version: 1.21
+
+      - name: Checkout
+        uses: actions@checkout@v3
+
+      - name: Make
+        run: sudo apt-get install make
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build & Push
+        uses: docker/build-push-action@v4
+        if: env.DEPLOY != 'none'
+        with:
+          context: ./
+          file: ./cmd/${APP}/Dockerfile
+          tags: |
+            ghcr.io/seventv/7tv-bot/${APP}:${{ env.DEPLOY }}-${{ github.sha }}
+            ghcr.io/seventv/7tv-bot/${APP}:${{ env.DEPLOY }}-latest
+          push: true
+
+  deploy:
+    name: Deploy Stats
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: ./terraform
+    
+    steps:
+      - name: Checkout code
+        id: ok
+        if: env.DEPLOY != 'none'
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        if: steps.ok.outcome == 'success'
+        uses: hashicorp/setup-terraform@v1
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: "Terraform Init"
+        if: steps.ok.outcome == 'success'
+        id: init
+        env:
+          TF_WORKSPACE: ${{ env.DEPLOY }}
+        run: terraform init
+        continue-on-error: true
+
+      - name: "Terraform Workspace"
+        if: steps.ok.outcome == 'success'
+        run: terraform workspace select -or-create=true ${{ env.DEPLOY }}
+
+      - name: Terraform fmt
+        if: steps.ok.outcome == 'success'
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: "Terraform Plan"
+        if: steps.ok.outcome == 'success'
+        id: plan
+        run: terraform plan -no-color
+
+      - name: "Terraform Apply"
+        if: steps.ok.outcome == 'success'
+        id: apply
+        run: terraform apply -no-color -auto-approve
+        continue-on-error: true
