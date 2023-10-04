@@ -3,6 +3,7 @@ package manager
 import (
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/seventv/7tv-bot/pkg/irc"
 )
@@ -16,8 +17,9 @@ var (
 // connection helps you manage a single IRC connection using some middleware,
 // to enable the IRCManager to manage lots of connections
 type connection struct {
-	client   *irc.Client
-	channels []*IRCChannel
+	client      *irc.Client
+	lastMessage time.Time
+	channels    []*IRCChannel
 	// avoids a lot of headaches
 	channelsMx *sync.Mutex
 
@@ -36,11 +38,12 @@ type connection struct {
 // newConnection sets up a new connection with capacity as set in ConnectionCapacity
 func newConnection(user, oauth string) *connection {
 	return &connection{
-		client:     irc.New(user, oauth).WithCapabilities(irc.CapTags),
-		channels:   []*IRCChannel{},
-		channelsMx: &sync.Mutex{},
-		capacity:   ConnectionCapacity,
-		isReady:    true,
+		client:      irc.New(user, oauth).WithCapabilities(irc.CapTags),
+		lastMessage: time.Now(),
+		channels:    []*IRCChannel{},
+		channelsMx:  &sync.Mutex{},
+		capacity:    ConnectionCapacity,
+		isReady:     true,
 	}
 }
 
@@ -52,7 +55,35 @@ func (c *connection) connect() error {
 		c.isReady = false
 	}()
 
-	return c.client.Connect()
+	return c.init()
+}
+
+func (c *connection) init() error {
+	errChan := make(chan error)
+	go func() {
+		err := c.client.Connect()
+		errChan <- err
+	}()
+	ticker := time.NewTicker(1 * time.Minute)
+	for {
+		select {
+		case err := <-errChan:
+			return err
+		case <-ticker.C:
+			if time.Since(c.lastMessage) < 1*time.Minute {
+				continue
+			}
+			// PING the IRC if we haven't received any messages in over a minute
+			c.ping()
+
+			// IRC should send a ping roughly every 5 minutes, so if we haven't received any messages in over 10 minutes,
+			// it's safe to assume the connection is dead
+			if time.Since(c.lastMessage) > 10*time.Minute {
+				c.disconnect()
+				return irc.ErrServerDisconnect
+			}
+		}
+	}
 }
 
 func (c *connection) disconnect() {
@@ -87,6 +118,7 @@ func (c *connection) setOnMessage(cb func(msg *irc.Message, err error)) {
 
 // this is middleware, needed to properly handle important incoming system messages like PING, JOIN & PART
 func (c *connection) handleMessages(msg *irc.Message, err error) {
+	c.lastMessage = time.Now()
 	// don't bother running the middleware if there's an error for the message
 	if err != nil {
 		c.onMessage(msg, err)
@@ -101,6 +133,10 @@ func (c *connection) handleMessages(msg *irc.Message, err error) {
 		c.onPart(msg)
 	}
 	c.onMessage(msg, err)
+}
+
+func (c *connection) ping() {
+	c.client.SendString("PING :7tv-bot")
 }
 
 func (c *connection) pong(msg *irc.Message) {

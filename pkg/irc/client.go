@@ -217,13 +217,24 @@ func (c *Client) startHandler() error {
 	for {
 		select {
 		case line := <-c.read:
-			c.onMessage(ParseMessage(line))
+			c.onMessage(
+				c.handleReconnectMessage(
+					ParseMessage(line),
+				),
+			)
 		case <-c.serverDisconnect.C:
 			return ErrServerDisconnect
 		case <-c.clientDisconnect.C:
 			return ErrClientDisconnected
 		}
 	}
+}
+
+func (c *Client) handleReconnectMessage(msg *Message, err error) (*Message, error) {
+	if msg.messageType == Reconnect {
+		c.serverDisconnect.Close()
+	}
+	return msg, err
 }
 
 // OnMessage sets a callback to handle the raw incoming IRC messages
