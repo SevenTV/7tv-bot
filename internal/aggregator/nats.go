@@ -14,7 +14,7 @@ func (s *Service) subscribe(ctx context.Context, cb func(msg *nats.Msg) error) e
 	if err != nil {
 		return err
 	}
-	sub, err := js.QueueSubscribeSync(s.cfg.Nats.Topic.Raw, s.cfg.Nats.Consumer)
+	sub, err := js.QueueSubscribeSync(s.cfg.Nats.Topic.Raw+".>", s.cfg.Nats.Consumer)
 	if err != nil {
 		panic(err)
 	}
@@ -80,7 +80,7 @@ func (s *Service) ensureConsumer(js nats.JetStreamContext) error {
 		AckWait:        1 * time.Minute,
 		AckPolicy:      nats.AckExplicitPolicy,
 		DeliverPolicy:  nats.DeliverAllPolicy,
-		FilterSubject:  s.cfg.Nats.Topic.Raw,
+		FilterSubject:  s.cfg.Nats.Topic.Raw + ".>",
 		DeliverSubject: nats.NewInbox(),
 	}
 	_, err := js.ConsumerInfo(s.cfg.Nats.Stream, consumercfg.Name)
@@ -97,7 +97,7 @@ func (s *Service) ensureConsumer(js nats.JetStreamContext) error {
 func (s *Service) ensureStream(js nats.JetStreamContext) error {
 	cfg := &nats.StreamConfig{
 		Name:      s.cfg.Nats.Stream,
-		Subjects:  []string{s.cfg.Nats.Topic.Raw},
+		Subjects:  []string{s.cfg.Nats.Topic.Raw + ".>"},
 		Retention: nats.InterestPolicy,
 		Discard:   nats.DiscardNew,
 		// TODO: 0 seconds sets this to default value (2 min), find optimal value for our case

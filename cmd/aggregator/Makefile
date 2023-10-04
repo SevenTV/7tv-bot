@@ -4,7 +4,7 @@ BUILDER := "unknown"
 VERSION := "unknown"
 
 build:
-	GOOS=linux GOARCH=amd64 go build -v -ldflags "-X 'main.Version=${VERSION}' -X 'main.Unix=$(shell date +%s)' -X 'main.User=${BUILDER}'" -o out/stats-aggregator cmd/stats-aggregator/*.go
+	GOOS=linux GOARCH=amd64 go build -v -ldflags "-X 'main.Version=${VERSION}' -X 'main.Unix=$(shell date +%s)' -X 'main.User=${BUILDER}'" -o out/aggregator cmd/aggregator/*.go
 
 lint:
 	golangci-lint run --go=1.18

@@ -83,3 +83,8 @@ variable "mongo_bot_users_collection" {
   type    = string
   default = ""
 }
+
+variable "mongo_bot_global_stats_collection" {
+  type    = string
+  default = ""
+}

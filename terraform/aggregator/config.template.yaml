@@ -1,0 +1,24 @@
+loglevel: info
+maxworkers: ${max_workers}
+
+nats:
+  url: ${nats_url}
+  stream: ${nats_stream}
+  consumer: ${nats_consumer}
+  topic:
+    raw: ${nats_irc_raw}
+
+mongo:
+  connectionstring: ${mongo_uri}
+  database: ${mongo_database}
+  collection: ${mongo_collection}
+  username: ${mongo_username}
+  password: ${mongo_password}
+
+health:
+  enabled: false
+  port: 0
+
+prometheus:
+  enabled: false
+  port: 0

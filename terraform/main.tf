@@ -51,3 +51,14 @@ module "bot-api" {
   mongo_bot_database         = var.mongo_bot_database
   mongo_bot_users_collection = var.mongo_bot_users_collection
 }
+
+module "aggregator" {
+  source             = "./aggregator"
+  image_url_template = local.image_url_template
+  infra              = local.infra
+
+  nats_irc_raw_subject              = var.nats_irc_raw_subject
+  nats_twitch_irc_stream            = var.nats_twitch_irc_stream
+  mongo_bot_database                = var.mongo_bot_database
+  mongo_bot_global_stats_collection = var.mongo_bot_global_stats_collection
+}
