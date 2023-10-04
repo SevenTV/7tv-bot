@@ -21,6 +21,10 @@ data "kubernetes_namespace" "app" {
 data "kubernetes_secret" "oauth" {
   metadata {
     name = var.oauth_secret
+    namespace = var.namespace
+  }
+  binary_data = {
+    "access-token" = ""
   }
 }
 
@@ -30,11 +34,12 @@ resource "kubernetes_secret" "app" {
     name      = "stats-irc-reader"
     namespace = var.namespace
   }
+  depends_on = [data.kubernetes_secret.oauth]
 
   data = {
     "config.yaml" = templatefile("${path.module}/config.template.yaml", {
       twitch_username  = var.twitch_username
-      twitch_oauth     = data.kubernetes_secret.oauth.data["access-token"]
+      twitch_oauth     = data.kubernetes_secret.oauth.binary_data["access-token"]
       ratelimit_join   = var.ratelimit_join
       ratelimit_auth   = var.ratelimit_auth
       ratelimit_reset  = var.ratelimit_reset
@@ -48,7 +53,7 @@ resource "kubernetes_secret" "app" {
       nats_stream      = var.nats_twitch_irc_stream
       nats_irc_raw     = var.nats_irc_raw_subject
       nats_bot_api     = var.nats_bot_api_subject
-      mongo_uri        = var.infra.mongo_uri
+      mongo_uri        = var.infra.mongodb_uri
       mongo_username   = var.infra.mongodb_user_app.username
       mongo_password   = var.infra.mongodb_user_app.password
       mongo_database   = var.mongo_bot_database
