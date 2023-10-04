@@ -26,7 +26,7 @@ resource "kubernetes_secret" "app" {
   }
 
   data = {
-    "config.yaml" = templatefile("${path.module}/config.yaml", {
+    "config.yaml" = templatefile("${path.module}/config.template.yaml", {
       redirect_uri  = "http://localhost:7777"
       namespace     = var.namespace
       oauth_secret  = "twitch-irc-oauth"
@@ -75,7 +75,7 @@ resource "kubernetes_deployment" "app" {
       spec {
         container {
           name  = "stats-oauth"
-          image = replace(local.image_url_template, "#APP", "oauth")
+          image = replace(var.image_url_template, "#APP", "oauth")
 
           port {
             name           = "http"
