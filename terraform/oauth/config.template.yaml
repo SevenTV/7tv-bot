@@ -4,7 +4,6 @@ environment: dev
 twitch:
   clientid: "${client_id}"
   clientsecret: "${client_secret}"
-  refreshtoken: ""
   redirecturi: "${redirect_uri}"
   state: ""
 

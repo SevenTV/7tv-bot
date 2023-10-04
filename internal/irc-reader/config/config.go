@@ -36,6 +36,8 @@ type Config struct {
 		ConnectionString string
 		Database         string
 		Collection       string
+		Username         string
+		Password         string
 	}
 	Nats struct {
 		URL    string

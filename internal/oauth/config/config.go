@@ -16,7 +16,6 @@ type Config struct {
 	Twitch      struct {
 		Clientid     string
 		Clientsecret string
-		Refreshtoken string
 		Redirecturi  string
 		State        string
 	}

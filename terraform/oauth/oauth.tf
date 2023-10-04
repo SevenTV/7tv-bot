@@ -29,7 +29,7 @@ resource "kubernetes_secret" "app" {
     "config.yaml" = templatefile("${path.module}/config.template.yaml", {
       redirect_uri  = "http://localhost:7777"
       namespace     = var.namespace
-      oauth_secret  = "twitch-irc-oauth"
+      oauth_secret  = var.oauth_secret
       port          = 7777
       client_id     = var.twitch_client_id
       client_secret = var.twitch_client_secret

@@ -5,6 +5,11 @@ variable "namespace" {
   default = "app"
 }
 
+variable "oauth_secret" {
+  type = string
+  default = ""
+}
+
 variable "twitch_client_id" {
   type    = string
   default = ""

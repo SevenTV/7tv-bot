@@ -17,7 +17,12 @@ func main() {
 	zap.ReplaceGlobals(logger)
 
 	cfg := config.New()
-	err := database.Connect(cfg.Mongo.ConnectionString, cfg.Mongo.Database)
+	err := database.Connect(
+		cfg.Mongo.ConnectionString,
+		cfg.Mongo.Username,
+		cfg.Mongo.Password,
+		cfg.Mongo.Database,
+	)
 	if err != nil {
 		panic(err)
 	}

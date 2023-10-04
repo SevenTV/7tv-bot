@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/seventv/7tv-bot/internal/oauth/config"
@@ -53,9 +54,20 @@ func (s *Service) Init() {
 	}
 	zap.S().Info("connected to kubernetes API")
 
-	if s.cfg.Twitch.Refreshtoken != "" {
-		s.lastOauth = &OauthResponse{RefreshToken: s.cfg.Twitch.Refreshtoken}
+	// check kubernetes for existing refresh token
+	secret, err := s.kube.CoreV1().Secrets(s.cfg.Kube.Namespace).Get(
+		context.TODO(),
+		s.cfg.Kube.Oauthsecret,
+		metav1.GetOptions{},
+	)
+	if secret != nil {
+		data, ok := secret.StringData["refresh-token"]
+		if ok && data != "" {
+			s.lastOauth = &OauthResponse{RefreshToken: data}
+		}
 	}
+
+	// if no existing refresh token is found in kubernetes, ask user for authorization
 	if s.lastOauth == nil {
 		zap.S().Warn("OAuth not set up, please follow the Authorization code flow. URI below.")
 		println(s.generateUri())
