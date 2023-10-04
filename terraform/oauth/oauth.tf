@@ -113,3 +113,36 @@ resource "kubernetes_deployment" "app" {
     }
   }
 }
+
+resource "kubernetes_role" "app" {
+  metadata {
+    name      = "stats-oauth"
+    namespace = data.kubernetes_namespace.app.metadata[0].name
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["secrets"]
+    verbs      = ["create", "update", "patch", "get"]
+  }
+}
+
+resource "kubernetes_role_binding" "app" {
+  // bind to kubernetes_role.app
+  metadata {
+    name      = "stats-oauth"
+    namespace = data.kubernetes_namespace.app.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = "default"
+    namespace = data.kubernetes_namespace.app.metadata[0].name
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.app.metadata[0].name
+  }
+}

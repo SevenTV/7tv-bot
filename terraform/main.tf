@@ -13,7 +13,7 @@ terraform {
 locals {
   infra_workspace_name = replace(terraform.workspace, "stats", "infra")
   infra                = data.terraform_remote_state.infra.outputs
-  image_url_template     = format("ghcr.io/seventv/7tv-bot/#APP-%s-latest", trimprefix(terraform.workspace, "seventv-stats"))
+  image_url_template     = format("ghcr.io/seventv/7tv-bot/#APP:%s-latest", trimprefix(terraform.workspace, "seventv-stats-"))
 }
 
 module "oauth" {
