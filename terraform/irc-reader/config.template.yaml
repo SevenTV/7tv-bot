@@ -14,7 +14,7 @@ ratelimit:
     master: ${redis_master}
 
 twitch:
-  user: ${twitch_user}
+  user: ${twitch_username}
   oauth: ${twitch_oauth}
 
 nats:
