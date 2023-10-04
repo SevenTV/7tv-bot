@@ -40,7 +40,7 @@ resource "kubernetes_secret" "app" {
       ratelimit_reset  = var.ratelimit_reset
       redis_username   = "default"
       redis_password   = var.infra.redis_password
-      redis_addressess = var.infra.redis_host
+      redis_address    = var.infra.redis_host
       redis_sentinel   = true
       redis_master     = "mymaster"
       redis_database   = 5
@@ -58,7 +58,7 @@ resource "kubernetes_secret" "app" {
 }
 resource "kubernetes_service" "app" {
   metadata {
-    name = "stats-irc-reader"
+    name   = "stats-irc-reader"
     labels = {
       app = "stats-irc-reader"
     }
@@ -67,7 +67,7 @@ resource "kubernetes_service" "app" {
     selector = {
       app = "stats-irc-reader"
     }
-    cluster_ip = "none"
+    cluster_ip = "None"
   }
 }
 
@@ -97,7 +97,7 @@ resource "kubernetes_stateful_set" "app" {
       }
     }
 
-    replicas = 1
+    replicas     = 1
     service_name = kubernetes_service.app.metadata[0].name
 
     template {
