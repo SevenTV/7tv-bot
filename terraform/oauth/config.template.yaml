@@ -5,7 +5,7 @@ twitch:
   clientid: "${client_id}"
   clientsecret: "${client_secret}"
   redirecturi: "${redirect_uri}"
-  state: ""
+  state: "dank"
 
 kube:
   namespace: ${namespace}
