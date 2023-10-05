@@ -14,6 +14,7 @@ var OnChange func()
 
 type Config struct {
 	LogLevel string
+	Replicas int
 
 	RateLimit struct {
 		Join  int64

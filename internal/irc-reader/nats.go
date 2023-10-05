@@ -57,7 +57,6 @@ func (c *Controller) watchChanges(nc *nats.Conn) {
 			if !bitwise.Has(channel.Flags, bitwise.JOIN_IRC) {
 				return
 			}
-			println("joining: " + channel.Username)
 			c.joinChannel(channel)
 		case database.Update:
 			// TODO: implement

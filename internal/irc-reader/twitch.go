@@ -71,16 +71,18 @@ func (c *Controller) joinChannels(channels []types.Channel) {
 }
 
 func (c *Controller) joinChannel(channel types.Channel) {
+	if !c.shouldJoin(channel.ID) {
+		return
+	}
 	c.joinSem <- struct{}{}
 	ch := channel
 	go func() {
-		// TODO: filter out channels based on user ID & shard ID, so we can spread the load across kubernetes statefulset
-
 		// make sure the channel is flagged to be joined
 		if !bitwise.Has(ch.Flags, bitwise.JOIN_IRC) {
 			return
 		}
 
+		zap.S().Infof("joining channel: %v", ch.Username)
 		err := c.twitch.Join(ch.Username, ch.Weight)
 		if err != nil {
 			zap.L().Error(
@@ -91,6 +93,18 @@ func (c *Controller) joinChannel(channel types.Channel) {
 		}
 		<-c.joinSem
 	}()
+}
+
+func (c *Controller) shouldJoin(userID int64) bool {
+	if c.cfg.Replicas < 2 {
+		return true
+	}
+
+	if int(userID)%c.cfg.Replicas == c.shardID {
+		return true
+	}
+
+	return false
 }
 
 // parses out the channel name from a PRIVMSG,
