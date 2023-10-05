@@ -73,17 +73,15 @@ func (s *Service) newJetStream() (nats.JetStreamContext, error) {
 
 func (s *Service) ensureConsumer(js nats.JetStreamContext) error {
 	consumercfg := &nats.ConsumerConfig{
-		Name:           s.cfg.Nats.Consumer,
-		Durable:        s.cfg.Nats.Consumer,
-		DeliverGroup:   s.cfg.Nats.Consumer,
-		MaxDeliver:     3,
-		AckWait:        1 * time.Minute,
-		AckPolicy:      nats.AckExplicitPolicy,
-		DeliverPolicy:  nats.DeliverAllPolicy,
-		FilterSubject:  s.cfg.Nats.Topic.Raw + ".>",
-		DeliverSubject: nats.NewInbox(),
+		Durable:       s.cfg.Nats.Consumer,
+		DeliverGroup:  s.cfg.Nats.Consumer,
+		MaxDeliver:    3,
+		AckWait:       1 * time.Minute,
+		AckPolicy:     nats.AckExplicitPolicy,
+		DeliverPolicy: nats.DeliverAllPolicy,
+		FilterSubject: s.cfg.Nats.Topic.Raw + ".>",
 	}
-	_, err := js.ConsumerInfo(s.cfg.Nats.Stream, consumercfg.Name)
+	_, err := js.ConsumerInfo(s.cfg.Nats.Stream, consumercfg.Durable)
 	if errors.Is(err, nats.ErrConsumerNotFound) {
 		_, err = js.AddConsumer(s.cfg.Nats.Stream, consumercfg)
 		return err
