@@ -80,6 +80,7 @@ resource "kubernetes_deployment" "app" {
         container {
           name  = "stats-aggregator"
           image = replace(var.image_url_template, "#APP", "aggregator")
+          image_pull_policy = "Always"
 
           resources {
             limits = {

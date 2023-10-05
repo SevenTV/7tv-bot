@@ -76,6 +76,7 @@ resource "kubernetes_deployment" "app" {
         container {
           name  = "stats-oauth"
           image = replace(var.image_url_template, "#APP", "oauth")
+          image_pull_policy = "Always"
 
           port {
             name           = "http"

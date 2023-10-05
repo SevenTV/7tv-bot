@@ -116,6 +116,7 @@ resource "kubernetes_stateful_set" "app" {
         container {
           name  = "stats-irc-reader"
           image = replace(var.image_url_template, "#APP", "irc-reader")
+          image_pull_policy = "Always"
 
           resources {
             limits = {

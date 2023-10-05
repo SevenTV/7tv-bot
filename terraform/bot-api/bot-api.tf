@@ -99,6 +99,7 @@ resource "kubernetes_deployment" "app" {
         container {
           name  = "stats-bot-api"
           image = replace(var.image_url_template, "#APP", "bot-api")
+          image_pull_policy = "Always"
 
           port {
             name           = "http"
