@@ -8,6 +8,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 
 	"github.com/seventv/7tv-bot/internal/database"
 	"github.com/seventv/7tv-bot/internal/irc-reader/config"
@@ -94,6 +95,7 @@ func (c *Controller) Init() error {
 
 func getShardID() int {
 	env := os.Getenv("HOSTNAME")
+	zap.S().Infof("HOSTNAME: %v", env)
 	split := strings.Split(env, "-")
 	if len(split) == 0 {
 		return 0
