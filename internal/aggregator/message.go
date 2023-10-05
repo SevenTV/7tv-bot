@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
 
 	emotedb "github.com/seventv/7tv-bot/pkg/database/emotes"
 	"github.com/seventv/7tv-bot/pkg/irc"
@@ -18,6 +19,8 @@ func (s *Service) handleMessage(natsMsg *nats.Msg) error {
 	if err != nil {
 		return err
 	}
+
+	zap.S().Debugf("parsed message from NATS: %v", msg.Raw)
 
 	counted, err := countEmotes(msg)
 	if err != nil {
