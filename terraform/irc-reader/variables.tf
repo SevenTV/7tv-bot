@@ -5,6 +5,11 @@ variable "namespace" {
   default = "app"
 }
 
+variable replicas {
+  type = number
+  default = 3
+}
+
 variable "oauth_secret" {
   type = string
   default = ""

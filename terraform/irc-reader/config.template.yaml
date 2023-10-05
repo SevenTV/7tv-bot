@@ -1,5 +1,5 @@
 loglevel: info
-replicas: %{replicas}
+replicas: ${replicas}
 
 ratelimit:
   join: ${ratelimit_join}

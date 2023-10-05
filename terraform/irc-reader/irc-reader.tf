@@ -38,7 +38,7 @@ resource "kubernetes_secret" "app" {
 
   data = {
     "config.yaml" = templatefile("${path.module}/config.template.yaml", {
-      replicas = 3
+      replicas = var.replicas
       twitch_username  = var.twitch_username
       twitch_oauth     = join(":", ["oauth", base64decode(data.kubernetes_secret.oauth.binary_data["access-token"])])
       ratelimit_join   = var.ratelimit_join
@@ -103,7 +103,7 @@ resource "kubernetes_stateful_set" "app" {
       }
     }
 
-    replicas     = 3
+    replicas     = var.replicas
     service_name = kubernetes_service.app.metadata[0].name
 
     template {
