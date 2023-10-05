@@ -1,6 +1,7 @@
 package irc_reader
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/nats-io/nats.go"
@@ -12,6 +13,10 @@ import (
 )
 
 func (c *Controller) onMessage(msg *irc.Message, err error) {
+	if msg.GetType() == irc.Notice {
+		zap.S().Info(fmt.Sprintf("NOTICE from twitch IRC: %v", msg.String()))
+		return
+	}
 	// skip anything that's not a channel message
 	if msg.GetType() != irc.PrivMessage {
 		return
@@ -24,6 +29,8 @@ func (c *Controller) onMessage(msg *irc.Message, err error) {
 	// set message ID as header, so we can filter out duplicate messages with JetStream
 	header := nats.Header{}
 	header.Add("Nats-Msg-Id", parseMessageId(msg.String()))
+
+	zap.S().Debugln(fmt.Sprintf("publishing to NATS: %v", msg.String()))
 
 	_, err = c.jetStream.PublishMsg(&nats.Msg{
 		Subject: subject,

@@ -15,8 +15,12 @@ import (
 func main() {
 	logger, _ := zap.NewProduction()
 	zap.ReplaceGlobals(logger)
-
 	cfg := config.New()
+	if cfg.LogLevel == "debug" {
+		logger, _ = zap.NewDevelopment()
+		zap.ReplaceGlobals(logger)
+	}
+	zap.S().Debug("using debug logger")
 
 	err := database.Connect(
 		cfg.Mongo.ConnectionString,

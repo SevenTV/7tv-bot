@@ -60,9 +60,13 @@ func (s *Service) Init() {
 		s.cfg.Kube.Oauthsecret,
 		metav1.GetOptions{},
 	)
+	if err != nil {
+		zap.S().Errorw("failed to get kube secret on startup")
+	}
 	if secret != nil {
 		data, ok := secret.StringData["refresh-token"]
 		if ok && data != "" {
+			zap.S().Info("fetched existing refresh token from kubernetes")
 			s.lastOauth = &OauthResponse{RefreshToken: data}
 		}
 	}
@@ -108,6 +112,7 @@ func (s *Service) refreshLoop() {
 			zap.S().Error("failed to store oauth token in kube secret", err)
 			continue
 		}
+		zap.S().Info("pushed oauth to kube secret")
 	}
 }
 

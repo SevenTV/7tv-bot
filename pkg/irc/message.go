@@ -24,6 +24,8 @@ const (
 	PrivMessage
 	// Cap is a message pertaining to the twitch-specific capabilities requested on connect
 	Cap
+	// Notice is a message about a command issues by the client, indicating whether it succeeded or failed
+	Notice
 )
 
 type Message struct {
@@ -97,6 +99,8 @@ func parseType(str string) MessageType {
 		return PrivMessage
 	case "CAP":
 		return Cap
+	case "NOTICE":
+		return Notice
 	default:
 		return Unknown
 	}

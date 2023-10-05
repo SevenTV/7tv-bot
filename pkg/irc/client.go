@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/seventv/7tv-bot/pkg/util"
 )
 
@@ -106,14 +108,15 @@ func (c *Client) Connect() (err error) {
 		return err
 	}
 
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go c.startReader(conn, &wg)
+
 	err = c.login(conn)
 	if err != nil {
 		return err
 	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go c.startReader(conn, &wg)
 	go c.startWriter(conn, &wg)
 
 	// Send signal when the client has connected
@@ -182,6 +185,7 @@ func (c *Client) startReader(reader io.Reader, wg *sync.WaitGroup) {
 		}
 
 		for _, msg := range strings.Split(line, "\r\n") {
+			zap.S().Debugf("received from IRC: %v", line)
 			c.read <- msg
 		}
 	}
