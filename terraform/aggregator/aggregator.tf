@@ -41,20 +41,6 @@ resource "kubernetes_secret" "app" {
   }
 }
 
-resource "kubernetes_service" "app" {
-  metadata {
-    name   = "stats-aggregator"
-    labels = {
-      app = "stats-aggregator"
-    }
-  }
-  spec {
-    selector = {
-      app = "stats-aggregator"
-    }
-  }
-}
-
 resource "kubernetes_deployment" "app" {
   metadata {
     name      = "stats-aggregator"

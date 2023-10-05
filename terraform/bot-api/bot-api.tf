@@ -50,6 +50,13 @@ resource "kubernetes_service" "app" {
     selector = {
       app = "stats-bot-api"
     }
+
+    port {
+      name       = "http"
+      port       = 7777
+      target_port = 7777
+      protocol   = "TCP"
+    }
   }
 }
 
