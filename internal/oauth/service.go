@@ -98,12 +98,12 @@ func (s *Service) refreshLoop() {
 
 		auth, err := s.refreshToken()
 		if err != nil {
-			zap.S().Error("failed to get oauth token. If you see this error repeat, consider resetting the OAuth refresh token with the URI below.", err)
+			zap.S().Errorw("failed to get oauth token. If you see this error repeat, consider resetting the OAuth refresh token with the URI below.", "error", err)
 			// print the authentication URI in log
 			println(s.generateUri())
 			// wait a minute then try again
 			select {
-			case <-time.NewTimer(1 * time.Minute).C:
+			case <-time.NewTimer(5 * time.Minute).C:
 				// skip the expiry timer on next loop
 				s.tokenOverride.Close()
 			case <-s.tokenOverride.C:
