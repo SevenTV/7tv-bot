@@ -3,6 +3,7 @@ package aggregator
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -14,7 +15,8 @@ func (s *Service) subscribe(ctx context.Context, cb func(msg *nats.Msg) error) e
 	if err != nil {
 		return err
 	}
-	sub, err := js.QueueSubscribeSync(s.cfg.Nats.Topic.Raw+".>", s.cfg.Nats.Consumer)
+
+	sub, err := js.PullSubscribe(s.cfg.Nats.Topic.Raw+".>", s.cfg.Nats.Consumer)
 	if err != nil {
 		panic(err)
 	}
@@ -23,8 +25,11 @@ func (s *Service) subscribe(ctx context.Context, cb func(msg *nats.Msg) error) e
 	sem := make(chan struct{}, s.cfg.Maxworkers)
 
 	for {
-		msg, err := sub.NextMsgWithContext(ctx)
+		msg, err := s.fetchOne(ctx, sub)
 		if err != nil {
+			if err.Error() == "fetch: context deadline exceeded" {
+				continue
+			}
 			panic(err)
 		}
 		_, err = msg.Metadata()
@@ -52,6 +57,18 @@ func (s *Service) subscribe(ctx context.Context, cb func(msg *nats.Msg) error) e
 		}()
 	}
 	return nil
+}
+
+func (s *Service) fetchOne(ctx context.Context, sub *nats.Subscription) (*nats.Msg, error) {
+	msgs, err := sub.Fetch(1, nats.Context(ctx))
+	if err != nil {
+		return nil, fmt.Errorf("fetch: %w", err)
+	}
+	if len(msgs) == 0 {
+		return nil, errors.New("no messages")
+	}
+
+	return msgs[0], nil
 }
 
 func (s *Service) newJetStream() (nats.JetStreamContext, error) {
@@ -96,6 +113,7 @@ func (s *Service) ensureStream(js nats.JetStreamContext) error {
 	cfg := &nats.StreamConfig{
 		Name:      s.cfg.Nats.Stream,
 		Subjects:  []string{s.cfg.Nats.Topic.Raw + ".>"},
+		MaxAge:    12 * time.Hour,
 		Retention: nats.InterestPolicy,
 		Discard:   nats.DiscardNew,
 		// TODO: 0 seconds sets this to default value (2 min), find optimal value for our case
