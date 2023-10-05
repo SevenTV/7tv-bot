@@ -16,7 +16,7 @@ type EmoteCount struct {
 	Name      string                     `bson:"name"`
 	EmoteID   primitive.ObjectID         `bson:"emote_id"`
 	Flags     model.ActiveEmoteFlagModel `bson:"flags"`
-	Tags      []string                   `bson:"tags,omitempty"`
+	State     []model.EmoteVersionState  `bson:"state,omitempty"`
 	URL       string                     `bson:"url"`
 	CreatedAt time.Time                  `bson:"created_at"`
 	UpdatedAt time.Time                  `bson:"updated_at"`
