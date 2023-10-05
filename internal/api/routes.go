@@ -31,13 +31,19 @@ func (s *Server) routes() []router.Route {
 			Pattern:     "/twitch/channel",
 			Method:      http.MethodPut,
 			Handler:     notImplemented,
-			Description: "Update channel using JSON body, matches with given channelID, gives error if ID does not exist yet.",
+			Description: "NOT IMPLEMENTED YET - Update channel using JSON body, matches with given channelID, gives error if ID does not exist yet.",
 		},
 		{
 			Pattern:     "/twitch/channel",
 			Method:      http.MethodDelete,
 			Handler:     s.deleteChannel,
 			Description: "Delete channel matching the id (?id=) url query parameter.",
+		},
+		{
+			Pattern:     "/twitch/channels",
+			Method:      http.MethodPost,
+			Handler:     s.postChannels,
+			Description: "Set channels using JSON array body.",
 		},
 	}
 }
