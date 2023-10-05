@@ -12,6 +12,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.uber.org/zap"
 
 	"github.com/seventv/7tv-bot/internal/database"
 	"github.com/seventv/7tv-bot/pkg/types"
@@ -109,6 +110,7 @@ func (s *Server) postChannel(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusAlreadyReported, "Already reported")
 			return
 		}
+		zap.S().Error(err)
 		writeError(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}

@@ -52,8 +52,11 @@ func GetChannel(ctx context.Context, filter bson.D) (*types.Channel, error) {
 // InsertChannel inserts a channel, returns error if it already exists
 func InsertChannel(ctx context.Context, channel types.Channel) error {
 	err := collection.FindOne(ctx, bson.D{{"user_id", channel.ID}}).Err()
-	if !errors.Is(err, mongo.ErrNoDocuments) {
+	if err == nil {
 		return ErrChannelAlreadyExists
+	}
+	if !errors.Is(err, mongo.ErrNoDocuments) {
+		return err
 	}
 
 	if channel.CreatedAt.IsZero() {
