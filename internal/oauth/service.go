@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"net/http"
 	"time"
 
@@ -64,10 +65,13 @@ func (s *Service) Init() {
 		zap.S().Errorw("failed to get kube secret on startup")
 	}
 	if secret != nil {
-		data, ok := secret.StringData["refresh-token"]
-		if ok && data != "" {
+		data, ok := secret.Data["refresh-token"]
+		if ok && len(data) > 0 {
 			zap.S().Info("fetched existing refresh token from kubernetes")
-			s.lastOauth = &OauthResponse{RefreshToken: data}
+			data, _ = base64.StdEncoding.DecodeString(string(data))
+			s.lastOauth = &OauthResponse{RefreshToken: string(data)}
+		} else {
+			zap.S().Info("no existing refresh token found in kubernetes secret data")
 		}
 	}
 
