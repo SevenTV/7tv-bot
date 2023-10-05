@@ -39,7 +39,7 @@ resource "kubernetes_secret" "app" {
   data = {
     "config.yaml" = templatefile("${path.module}/config.template.yaml", {
       twitch_username  = var.twitch_username
-      twitch_oauth     = data.kubernetes_secret.oauth.binary_data["access-token"]
+      twitch_oauth     = join(":", ["oauth", base64decode(data.kubernetes_secret.oauth.binary_data["access-token"])])
       ratelimit_join   = var.ratelimit_join
       ratelimit_auth   = var.ratelimit_auth
       ratelimit_reset  = var.ratelimit_reset
