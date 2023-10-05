@@ -116,7 +116,7 @@ func (s *Service) refreshLoop() {
 			zap.S().Error("failed to store oauth token in kube secret", err)
 			continue
 		}
-		zap.S().Info("pushed oauth to kube secret")
+		zap.S().Infof("pushed oauth to kube secret, expires in %vs", auth.ExpiresIn)
 	}
 }
 
