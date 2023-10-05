@@ -28,7 +28,7 @@ resource "kubernetes_secret" "app" {
   data = {
     "config.yaml" = templatefile("${path.module}/config.template.yaml", {
       max_workers      = 6
-      nats_consumer    = "stats-aggregator"
+      nats_consumer    = "irc-stats-aggregator"
       nats_url         = "nats.database.svc.cluster.local:4222"
       nats_irc_raw     = var.nats_irc_raw_subject
       nats_stream      = var.nats_twitch_irc_stream
