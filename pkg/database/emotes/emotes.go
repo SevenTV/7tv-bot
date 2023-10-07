@@ -21,6 +21,7 @@ func IncrementEmote(ctx context.Context, emote types.CountedEmote) error {
 			Name:      emote.Emote.Name,
 			EmoteID:   emote.Emote.ID,
 			Flags:     emote.Emote.Flags,
+			State:     emote.Emote.Data.State,
 			URL:       emote.Emote.Data.Host.URL,
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),

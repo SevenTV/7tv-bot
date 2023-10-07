@@ -2,9 +2,13 @@ package irc_reader
 
 import (
 	"context"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 
 	"github.com/seventv/7tv-bot/internal/database"
 	"github.com/seventv/7tv-bot/internal/irc-reader/config"
@@ -16,6 +20,8 @@ type Controller struct {
 	cfg       *config.Config
 	jetStream nats.JetStreamContext
 	twitch    *manager.IRCManager
+
+	shardID int
 
 	// limit amount of workers for joining channels
 	joinSem chan struct{}
@@ -29,6 +35,9 @@ func New(cfg *config.Config) *Controller {
 }
 
 func (c *Controller) Init() error {
+	if c.cfg.Replicas > 1 {
+		c.shardID = getShardID()
+	}
 	nc, err := nats.Connect(c.cfg.Nats.URL)
 	if err != nil {
 		return err
@@ -82,6 +91,18 @@ func (c *Controller) Init() error {
 	c.watchChanges(nc)
 
 	return nil
+}
+
+func getShardID() int {
+	env := os.Getenv("HOSTNAME")
+	zap.S().Infof("HOSTNAME: %v", env)
+	split := strings.Split(env, "-")
+	if len(split) == 0 {
+		return 0
+	}
+	id := split[len(split)-1]
+	result, _ := strconv.Atoi(id)
+	return result
 }
 
 func (c *Controller) Shutdown() {

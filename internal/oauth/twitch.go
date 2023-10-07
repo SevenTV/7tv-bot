@@ -2,10 +2,15 @@ package oauth
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+)
+
+var (
+	ErrUnexpectedStatus = errors.New("unexpected status code")
 )
 
 type OauthResponse struct {
@@ -42,6 +47,9 @@ func (s *Service) refreshToken() (*OauthResponse, error) {
 	data.Set("grant_type", "refresh_token")
 
 	body, err := postData(data)
+	if err != nil {
+		return nil, err
+	}
 
 	response := &OauthResponse{}
 	err = json.Unmarshal(body, response)
@@ -52,6 +60,9 @@ func postData(data url.Values) ([]byte, error) {
 	res, err := http.PostForm("https://id.twitch.tv/oauth2/token", data)
 	if err != nil {
 		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, ErrUnexpectedStatus
 	}
 
 	body, err := io.ReadAll(res.Body)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gookit/goutil/mathutil"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 var (
@@ -63,6 +64,7 @@ func (r *RateLimiter) getRate(key string, ctx context.Context) (counter int64, e
 // WaitToJoin is a blocking function that returns when we have capacity in the rate limit to Join a channel
 func (r *RateLimiter) WaitToJoin(ctx context.Context) error {
 	count, err := r.getRate(joinKey, ctx)
+	zap.S().Debugf("join ratelimit: %v", count)
 	if err != nil {
 		return err
 	}
@@ -77,6 +79,7 @@ func (r *RateLimiter) WaitToJoin(ctx context.Context) error {
 // WaitToAuth is a blocking function that returns when we have capacity in the rate limit to create a new IRC connection
 func (r *RateLimiter) WaitToAuth(ctx context.Context) error {
 	count, err := r.getRate(authKey, ctx)
+	zap.S().Debugf("auth ratelimit: %v", count)
 	if err != nil {
 		return err
 	}

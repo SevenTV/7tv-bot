@@ -20,7 +20,15 @@ func New(cfg *config.Config) *Service {
 }
 
 func (s *Service) Init() error {
-	database.Connect(s.cfg.Mongo.ConnectionString, s.cfg.Mongo.Database)
+	err := database.Connect(
+		s.cfg.Mongo.ConnectionString,
+		s.cfg.Mongo.Username,
+		s.cfg.Mongo.Password,
+		s.cfg.Mongo.Database,
+	)
+	if err != nil {
+		return err
+	}
 	coll := database.EnsureCollection(
 		s.cfg.Mongo.Collection,
 		[]mongo.IndexModel{
@@ -30,9 +38,5 @@ func (s *Service) Init() error {
 		},
 	)
 	emotedb.SetCollections(coll)
-	err := s.subscribe(context.TODO(), s.handleMessage)
-	if err != nil {
-		return err
-	}
-	return nil
+	return s.subscribe(context.TODO(), s.handleMessage)
 }

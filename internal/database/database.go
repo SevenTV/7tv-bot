@@ -15,10 +15,16 @@ var (
 	collection *mongo.Collection
 )
 
-func Connect(uri, database string) error {
+func Connect(uri, username, password, database string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	opt := options.Client().ApplyURI(uri)
+	if username != "" && password != "" {
+		opt.SetAuth(options.Credential{
+			Username: username,
+			Password: password,
+		})
+	}
 	client, err := mongo.Connect(ctx, opt)
 	if err != nil {
 		return err

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/seventv/7tv-bot/internal/oauth/config"
@@ -53,9 +54,26 @@ func (s *Service) Init() {
 	}
 	zap.S().Info("connected to kubernetes API")
 
-	if s.cfg.Twitch.Refreshtoken != "" {
-		s.lastOauth = &OauthResponse{RefreshToken: s.cfg.Twitch.Refreshtoken}
+	// check kubernetes for existing refresh token
+	secret, err := s.kube.CoreV1().Secrets(s.cfg.Kube.Namespace).Get(
+		context.TODO(),
+		s.cfg.Kube.Oauthsecret,
+		metav1.GetOptions{},
+	)
+	if err != nil {
+		zap.S().Errorw("failed to get kube secret on startup")
 	}
+	if secret != nil {
+		data, ok := secret.Data["refresh-token"]
+		if ok && len(data) > 0 {
+			zap.S().Info("fetched existing refresh token from kubernetes")
+			s.lastOauth = &OauthResponse{RefreshToken: string(data)}
+		} else {
+			zap.S().Info("no existing refresh token found in kubernetes secret data")
+		}
+	}
+
+	// if no existing refresh token is found in kubernetes, ask user for authorization
 	if s.lastOauth == nil {
 		zap.S().Warn("OAuth not set up, please follow the Authorization code flow. URI below.")
 		println(s.generateUri())
@@ -78,12 +96,12 @@ func (s *Service) refreshLoop() {
 
 		auth, err := s.refreshToken()
 		if err != nil {
-			zap.S().Error("failed to get oauth token. If you see this error repeat, consider resetting the OAuth refresh token with the URI below.", err)
+			zap.S().Errorw("failed to get oauth token. If you see this error repeat, consider resetting the OAuth refresh token with the URI below.", "error", err)
 			// print the authentication URI in log
 			println(s.generateUri())
 			// wait a minute then try again
 			select {
-			case <-time.NewTimer(1 * time.Minute).C:
+			case <-time.NewTimer(5 * time.Minute).C:
 				// skip the expiry timer on next loop
 				s.tokenOverride.Close()
 			case <-s.tokenOverride.C:
@@ -96,6 +114,7 @@ func (s *Service) refreshLoop() {
 			zap.S().Error("failed to store oauth token in kube secret", err)
 			continue
 		}
+		zap.S().Infof("pushed oauth to kube secret, expires in %vs", auth.ExpiresIn)
 	}
 }
 

@@ -7,9 +7,9 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/seventv/7tv-bot/internal/api"
+	"github.com/seventv/7tv-bot/internal/api/config"
 	"github.com/seventv/7tv-bot/internal/database"
-	"github.com/seventv/7tv-bot/internal/irc-reader"
-	"github.com/seventv/7tv-bot/internal/irc-reader/config"
 )
 
 func main() {
@@ -17,24 +17,29 @@ func main() {
 	zap.ReplaceGlobals(logger)
 
 	cfg := config.New()
-
-	err := database.Connect(cfg.Mongo.ConnectionString, cfg.Mongo.Database)
+	err := database.Connect(
+		cfg.Mongo.ConnectionString,
+		cfg.Mongo.Username,
+		cfg.Mongo.Password,
+		cfg.Mongo.Database,
+	)
 	if err != nil {
 		panic(err)
 	}
 	database.EnsureCollection(cfg.Mongo.Collection)
 
-	svc := irc_reader.New(cfg)
-	err = svc.Init()
+	server := api.New(cfg)
+	err = server.Init()
 	if err != nil {
 		panic(err)
 	}
+
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
 	case <-shutdown:
 		zap.L().Info("Shutting down...")
-		svc.Shutdown()
+		server.Shutdown()
 	}
 }
