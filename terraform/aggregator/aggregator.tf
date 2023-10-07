@@ -67,7 +67,7 @@ resource "kubernetes_deployment" "app" {
       }
     }
 
-    replicas = 1
+    replicas = 5
 
     template {
       metadata {
@@ -85,12 +85,12 @@ resource "kubernetes_deployment" "app" {
           resources {
             limits = {
               cpu    = "500m"
-              memory = "512Mi"
+              memory = "1.25Gi"
             }
 
             requests = {
               cpu    = "10m"
-              memory = "50Mi"
+              memory = "1Gi"
             }
           }
 

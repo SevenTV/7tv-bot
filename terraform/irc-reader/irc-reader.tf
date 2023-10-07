@@ -34,7 +34,6 @@ resource "kubernetes_secret" "app" {
     name      = "stats-irc-reader"
     namespace = var.namespace
   }
-  depends_on = [data.kubernetes_secret.oauth]
 
   data = {
     "config.yaml" = templatefile("${path.module}/config.template.yaml", {
