@@ -38,5 +38,7 @@ func (s *Service) Init() error {
 		},
 	)
 	emotedb.SetCollections(coll)
+
+	initCache()
 	return s.subscribe(context.TODO(), s.handleMessage)
 }

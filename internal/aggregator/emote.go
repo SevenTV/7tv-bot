@@ -56,6 +56,25 @@ type emoteCache struct {
 	emotes  []model.ActiveEmoteModel
 }
 
+func initCache() {
+	go func() {
+		for range time.Tick(1 * time.Minute) {
+			cleanCache()
+		}
+	}()
+}
+
+func cleanCache() {
+	mx.Lock()
+	defer mx.Unlock()
+
+	for channelID, cache := range activeEmotesCache {
+		if time.Since(cache.expires) > 0 {
+			delete(activeEmotesCache, channelID)
+		}
+	}
+}
+
 func getEmotesForChannel(channelID string) ([]model.ActiveEmoteModel, error) {
 	mx.Lock()
 	defer mx.Unlock()
