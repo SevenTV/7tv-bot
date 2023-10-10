@@ -91,6 +91,12 @@ func (c *Controller) Init() error {
 		c.twitch.UpdateOauth(c.cfg.Twitch.Oauth)
 	}
 
+	// watch for changes to OAuth in kubernetes secret
+	err = c.watchKube(context.Background(), c.updateOauthFromKubeSecret)
+	if err != nil {
+		return err
+	}
+
 	// feed back twitch channels that got disconnected to the IRC
 	go c.handleOrphanedChannels()
 

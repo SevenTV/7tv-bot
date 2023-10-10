@@ -22,10 +22,7 @@ func (c *Controller) kubeInit() error {
 		return err
 	}
 	c.kube, err = kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-	return c.watchKube(context.Background(), c.updateOauthFromKubeSecret)
+	return err
 }
 
 func (c *Controller) watchKube(ctx context.Context, cb func() error) error {
