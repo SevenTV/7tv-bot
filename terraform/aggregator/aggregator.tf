@@ -90,8 +90,8 @@ resource "kubernetes_deployment" "app" {
             }
 
             requests = {
-              cpu    = "10m"
-              memory = "2Gi"
+              cpu    = "100m"
+              memory = "250Mi"
             }
           }
 
