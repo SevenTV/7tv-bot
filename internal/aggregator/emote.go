@@ -53,7 +53,7 @@ var mx = sync.Mutex{}
 
 type emoteCache struct {
 	expires time.Time
-	emotes  []model.ActiveEmoteModel
+	emotes  []types.Emote
 }
 
 func initCache() {
@@ -75,7 +75,7 @@ func cleanCache() {
 	}
 }
 
-func getEmotesForChannel(channelID string) ([]model.ActiveEmoteModel, error) {
+func getEmotesForChannel(channelID string) ([]types.Emote, error) {
 	mx.Lock()
 	defer mx.Unlock()
 
@@ -85,17 +85,32 @@ func getEmotesForChannel(channelID string) ([]model.ActiveEmoteModel, error) {
 			return cache.emotes, nil
 		}
 	}
-	emotes, err := getEmotesByChannelId(channelID)
+	response, err := getEmotesByChannelId(channelID)
 	if err != nil {
 		if errors.Is(err, ErrEmotesNotEnabled) {
 			// set empty slice, so we don't spam the API with requests in the future
 			activeEmotesCache[channelID] = emoteCache{
-				emotes:  []model.ActiveEmoteModel{},
+				emotes:  []types.Emote{},
 				expires: time.Now().Add(5 * time.Minute),
 			}
-			return []model.ActiveEmoteModel{}, nil
+			return []types.Emote{}, nil
 		}
 		return nil, err
+	}
+
+	// convert response to save some memory
+	var emotes []types.Emote
+	for _, emote := range response {
+		if emote.Data == nil {
+			continue
+		}
+		emotes = append(emotes, types.Emote{
+			Name:    emote.Name,
+			EmoteID: emote.ID,
+			Flags:   emote.Flags,
+			State:   emote.Data.State,
+			URL:     emote.Data.Host.URL,
+		})
 	}
 
 	activeEmotesCache[channelID] = emoteCache{
@@ -142,7 +157,7 @@ func getEmotesByChannelId(channelID string) ([]model.ActiveEmoteModel, error) {
 	return userModel.EmoteSet.Emotes, nil
 }
 
-func getGlobalEmotes() ([]model.ActiveEmoteModel, error) {
+func getGlobalEmotes() ([]types.Emote, error) {
 	mx.Lock()
 	defer mx.Unlock()
 
@@ -153,10 +168,26 @@ func getGlobalEmotes() ([]model.ActiveEmoteModel, error) {
 		}
 	}
 
-	emotes, err := requestGlobalEmotes()
+	response, err := requestGlobalEmotes()
 	if err != nil {
 		return nil, err
 	}
+
+	// convert response to save some memory
+	var emotes []types.Emote
+	for _, emote := range response {
+		if emote.Data == nil {
+			continue
+		}
+		emotes = append(emotes, types.Emote{
+			Name:    emote.Name,
+			EmoteID: emote.ID,
+			Flags:   emote.Flags,
+			State:   emote.Data.State,
+			URL:     emote.Data.Host.URL,
+		})
+	}
+
 	activeEmotesCache["global"] = emoteCache{
 		expires: time.Now().Add(5 * time.Minute),
 		emotes:  emotes,
