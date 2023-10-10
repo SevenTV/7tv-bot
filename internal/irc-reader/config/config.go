@@ -16,6 +16,10 @@ type Config struct {
 	LogLevel string
 	Replicas int
 
+	Kube struct {
+		Namespace   string
+		Oauthsecret string
+	}
 	RateLimit struct {
 		Join  int64
 		Auth  int64
