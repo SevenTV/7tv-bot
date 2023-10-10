@@ -153,7 +153,7 @@ func getEmotesByChannelId(channelID string) ([]model.ActiveEmoteModel, error) {
 	}
 
 	if userModel.EmoteSet == nil {
-		return nil, ErrIncompleteResponse
+		return nil, ErrEmotesNotEnabled
 	}
 
 	return userModel.EmoteSet.Emotes, nil
