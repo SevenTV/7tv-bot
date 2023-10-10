@@ -92,9 +92,11 @@ func (c *Controller) Init() error {
 	}
 
 	// watch for changes to OAuth in kubernetes secret
-	err = c.watchKube(context.Background(), c.updateOauthFromKubeSecret)
-	if err != nil {
-		return err
+	if c.cfg.Kube.Oauthsecret != "" {
+		err = c.watchKube(context.Background(), c.updateOauthFromKubeSecret)
+		if err != nil {
+			return err
+		}
 	}
 
 	// feed back twitch channels that got disconnected to the IRC
