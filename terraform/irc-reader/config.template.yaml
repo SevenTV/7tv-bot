@@ -1,6 +1,10 @@
 loglevel: info
 replicas: ${replicas}
 
+kube:
+  namespace: ${namespace}
+  oauthsecret: ${oauthsecret}
+
 ratelimit:
   join: ${ratelimit_join}
   auth: ${ratelimit_auth}
@@ -16,7 +20,6 @@ ratelimit:
 
 twitch:
   user: ${twitch_username}
-  oauth: ${twitch_oauth}
 
 nats:
   url: ${nats_url}
