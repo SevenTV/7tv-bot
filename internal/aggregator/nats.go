@@ -113,11 +113,11 @@ func (s *Service) ensureStream(js nats.JetStreamContext) error {
 	cfg := &nats.StreamConfig{
 		Name:      s.cfg.Nats.Stream,
 		Subjects:  []string{s.cfg.Nats.Topic.Raw + ".>"},
-		MaxAge:    12 * time.Hour,
+		MaxAge:    1 * time.Hour,
 		Retention: nats.InterestPolicy,
 		Discard:   nats.DiscardNew,
 		// TODO: 0 seconds sets this to default value (2 min), find optimal value for our case
-		Duplicates: 0 * time.Second,
+		Duplicates: 1 * time.Minute,
 	}
 
 	_, err := js.StreamInfo(cfg.Name)
