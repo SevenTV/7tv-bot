@@ -11,18 +11,15 @@ import (
 )
 
 func IncrementEmote(ctx context.Context, emote types.CountedEmote) error {
-	if emote.Emote.Data == nil {
-		return ErrMissingData
-	}
 	res, err := collections.GlobalStats.UpdateOne(
 		ctx,
-		bson.D{{"emote_id", emote.Emote.ID}},
+		bson.D{{"emote_id", emote.Emote.EmoteID}},
 		bson.M{"$setOnInsert": EmoteCount{
 			Name:      emote.Emote.Name,
-			EmoteID:   emote.Emote.ID,
+			EmoteID:   emote.Emote.EmoteID,
 			Flags:     emote.Emote.Flags,
-			State:     emote.Emote.Data.State,
-			URL:       emote.Emote.Data.Host.URL,
+			State:     emote.Emote.State,
+			URL:       emote.Emote.URL,
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),
 			Count:     emote.Count,
@@ -37,7 +34,7 @@ func IncrementEmote(ctx context.Context, emote types.CountedEmote) error {
 
 	_, err = collections.GlobalStats.UpdateOne(
 		ctx,
-		bson.D{{"emote_id", emote.Emote.ID}},
+		bson.D{{"emote_id", emote.Emote.EmoteID}},
 		bson.M{
 			"$inc": bson.M{
 				"count": emote.Count,

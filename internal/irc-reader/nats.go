@@ -3,7 +3,6 @@ package irc_reader
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -19,12 +18,12 @@ import (
 func (c *Controller) ensureStream(js nats.JetStreamContext) error {
 	cfg := &nats.StreamConfig{
 		Name:      c.cfg.Nats.Stream,
-		Subjects:  []string{fmt.Sprintf("%v.>", c.cfg.Nats.Topic.Raw)},
-		MaxAge:    12 * time.Hour,
+		Subjects:  []string{c.cfg.Nats.Topic.Raw + ".>"},
+		MaxAge:    1 * time.Hour,
 		Retention: nats.InterestPolicy,
 		Discard:   nats.DiscardNew,
 		// TODO: 0 seconds sets this to default value (2 min), find optimal value for our case
-		Duplicates: 0 * time.Second,
+		Duplicates: 1 * time.Minute,
 	}
 
 	_, err := js.StreamInfo(cfg.Name)

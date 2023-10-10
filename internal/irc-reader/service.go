@@ -9,6 +9,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/seventv/7tv-bot/internal/database"
 	"github.com/seventv/7tv-bot/internal/irc-reader/config"
@@ -19,6 +20,7 @@ import (
 type Controller struct {
 	cfg       *config.Config
 	jetStream nats.JetStreamContext
+	kube      *kubernetes.Clientset
 	twitch    *manager.IRCManager
 
 	shardID int
@@ -59,8 +61,21 @@ func (c *Controller) Init() error {
 		return err
 	}
 
+	err = c.kubeInit()
+	if err != nil {
+		return err
+	}
+
+	oauth := c.cfg.Twitch.Oauth
+	if oauth == "" {
+		oauth, err = c.getOauthFromKubeSecret(context.Background())
+		if err != nil {
+			return err
+		}
+	}
+
 	// initialize twitch IRC manager with ratelimit
-	c.twitch = manager.New(c.cfg.Twitch.User, c.cfg.Twitch.Oauth).
+	c.twitch = manager.New(c.cfg.Twitch.User, oauth).
 		WithLimit(ratelimit.New(
 			redisClient,
 			c.cfg.RateLimit.Join,
@@ -70,7 +85,18 @@ func (c *Controller) Init() error {
 
 	// watch for config changes to OAuth
 	config.OnChange = func() {
+		if c.cfg.Twitch.Oauth == "" {
+			return
+		}
 		c.twitch.UpdateOauth(c.cfg.Twitch.Oauth)
+	}
+
+	// watch for changes to OAuth in kubernetes secret
+	if c.cfg.Kube.Oauthsecret != "" {
+		err = c.watchKube(context.Background(), c.updateOauthFromKubeSecret)
+		if err != nil {
+			return err
+		}
 	}
 
 	// feed back twitch channels that got disconnected to the IRC

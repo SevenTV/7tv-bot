@@ -1,5 +1,9 @@
 loglevel: info
 
+kube:
+  namespace: default
+  oauthsecret: twitch-irc-oauth
+
 ratelimit:
   join: 20
   auth: 20

@@ -18,16 +18,6 @@ data "kubernetes_namespace" "app" {
   }
 }
 
-data "kubernetes_secret" "oauth" {
-  metadata {
-    name = var.oauth_secret
-    namespace = var.namespace
-  }
-  binary_data = {
-    "access-token" = ""
-  }
-}
-
 // Define config secret
 resource "kubernetes_secret" "app" {
   metadata {
@@ -37,9 +27,10 @@ resource "kubernetes_secret" "app" {
 
   data = {
     "config.yaml" = templatefile("${path.module}/config.template.yaml", {
+      namespace = data.kubernetes_namespace.app.metadata[0].name
+      oauthsecret = var.oauth_secret
       replicas = var.replicas
       twitch_username  = var.twitch_username
-      twitch_oauth     = join(":", ["oauth", base64decode(data.kubernetes_secret.oauth.binary_data["access-token"])])
       ratelimit_join   = var.ratelimit_join
       ratelimit_auth   = var.ratelimit_auth
       ratelimit_reset  = var.ratelimit_reset
@@ -146,5 +137,38 @@ resource "kubernetes_stateful_set" "app" {
         }
       }
     }
+  }
+}
+
+resource "kubernetes_role" "app" {
+  metadata {
+    name      = "stats-irc-reader"
+    namespace = data.kubernetes_namespace.app.metadata[0].name
+  }
+
+  rule {
+    api_groups = [""]
+    resources  = ["secrets"]
+    verbs      = ["watch", "get", "list"]
+  }
+}
+
+resource "kubernetes_role_binding" "app" {
+  // bind to kubernetes_role.app
+  metadata {
+    name      = "stats-irc-reader"
+    namespace = data.kubernetes_namespace.app.metadata[0].name
+  }
+
+  subject {
+    kind      = "ServiceAccount"
+    name      = "default"
+    namespace = data.kubernetes_namespace.app.metadata[0].name
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.app.metadata[0].name
   }
 }
