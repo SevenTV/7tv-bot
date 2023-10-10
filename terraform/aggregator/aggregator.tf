@@ -68,7 +68,7 @@ resource "kubernetes_deployment" "app" {
       }
     }
 
-    replicas = 4
+    replicas = 3
 
     template {
       metadata {
