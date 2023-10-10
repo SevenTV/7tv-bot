@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/seventv/api/data/model"
+	"go.uber.org/zap"
 
 	"github.com/seventv/7tv-bot/pkg/types"
 )
@@ -102,6 +103,7 @@ func getEmotesForChannel(channelID string) ([]types.Emote, error) {
 	var emotes []types.Emote
 	for _, emote := range response {
 		if emote.Data == nil {
+			zap.S().Infof("emote %v has no data field, skipping", emote.Name)
 			continue
 		}
 		emotes = append(emotes, types.Emote{
@@ -177,6 +179,7 @@ func getGlobalEmotes() ([]types.Emote, error) {
 	var emotes []types.Emote
 	for _, emote := range response {
 		if emote.Data == nil {
+			zap.S().Infof("emote %v has no data field, skipping", emote.Name)
 			continue
 		}
 		emotes = append(emotes, types.Emote{
