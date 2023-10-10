@@ -46,6 +46,7 @@ resource "kubernetes_deployment" "app" {
     name      = "stats-aggregator"
     namespace = data.kubernetes_namespace.app.metadata[0].name
     labels    = {
+      k8slens-edit-resource-version = "v1"
       app = "stats-aggregator"
     }
   }
@@ -67,7 +68,7 @@ resource "kubernetes_deployment" "app" {
       }
     }
 
-    replicas = 5
+    replicas = 4
 
     template {
       metadata {
@@ -84,13 +85,13 @@ resource "kubernetes_deployment" "app" {
 
           resources {
             limits = {
-              cpu    = "500m"
-              memory = "1.25Gi"
+              cpu    = "2"
+              memory = "2Gi"
             }
 
             requests = {
               cpu    = "10m"
-              memory = "1Gi"
+              memory = "2Gi"
             }
           }
 
