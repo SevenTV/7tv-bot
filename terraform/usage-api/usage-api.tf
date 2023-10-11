@@ -41,6 +41,7 @@ resource "kubernetes_secret" "app" {
 resource "kubernetes_service" "app" {
   metadata {
     name   = "stats-usage-api"
+    namespace = data.kubernetes_namespace.app.metadata[0].name
     labels = {
       app = "stats-usage-api"
     }
