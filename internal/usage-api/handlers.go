@@ -14,6 +14,7 @@ import (
 
 	"github.com/seventv/7tv-bot/pkg/database/emotes"
 	"github.com/seventv/7tv-bot/pkg/pubsub"
+	"github.com/seventv/7tv-bot/pkg/util"
 )
 
 func (s *Server) index(w http.ResponseWriter, r *http.Request) {
@@ -65,17 +66,22 @@ func (s *Server) getTopEmotes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
+	zap.S().Debugf("websocket connection from %s", r.RemoteAddr)
 	// upgrade connection to websocket, check for errors and close if any
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		zap.S().Error("error upgrading connection to websocket", zap.Error(err))
+		zap.S().Error("error upgrading connection to websocket ", zap.Error(err))
 		return
 	}
 	defer conn.Close()
+
+	closer := util.Closer{}
+	closer.Reset()
 	// create pubsub connection to write messages from NATS to websocket
 	pubsubconn := pubsub.NewConnection(func(data []byte) {
 		if err = conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			zap.S().Error("error writing message to websocket", zap.Error(err))
+			zap.S().Error("error writing message to websocket, closing connection ", zap.Error(err))
+			closer.Close()
 		}
 	})
 	defer pubsubconn.Close()
@@ -85,13 +91,14 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 	lastPong := time.Now()
 	// listen for pong messages
 	conn.SetPongHandler(func(string) error {
+		zap.S().Debug("received pong")
 		lastPong = time.Now()
 		return nil
 	})
 	conn.SetPingHandler(func(string) error {
 		err = conn.WriteMessage(websocket.PongMessage, nil)
 		if err != nil {
-			zap.S().Error("error writing pong to websocket", zap.Error(err))
+			zap.S().Error("error writing pong to websocket ", zap.Error(err))
 		}
 		return err
 	})
@@ -106,7 +113,7 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 			// read messages from websocket to enable handlers to work
 			_, _, err := conn.ReadMessage()
 			if err != nil {
-				zap.S().Error("error reading message from websocket", zap.Error(err))
+				zap.S().Error("error reading message from websocket ", zap.Error(err))
 				closed = true
 				return
 			}
@@ -119,13 +126,19 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if time.Since(lastPong) > 2*time.Minute {
+			// send close message to websocket
+			err = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "connection closed due to inactivity"))
 			zap.S().Error("websocket connection timed out")
 			return
 		}
 		if err = conn.WriteMessage(websocket.PingMessage, []byte("PING")); err != nil {
-			zap.S().Error("error pinging websocket", zap.Error(err))
+			zap.S().Error("error pinging websocket ", zap.Error(err))
 			return
 		}
-		<-time.After(30 * time.Second)
+		select {
+		case <-closer.C:
+			return
+		case <-time.After(30 * time.Second):
+		}
 	}
 }
