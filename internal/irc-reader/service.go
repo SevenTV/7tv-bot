@@ -61,9 +61,11 @@ func (c *Controller) Init() error {
 		return err
 	}
 
-	err = c.kubeInit()
-	if err != nil {
-		return err
+	if c.cfg.Kube.Oauthsecret != "" {
+		err = c.kubeInit()
+		if err != nil {
+			return err
+		}
 	}
 
 	oauth := c.cfg.Twitch.Oauth
