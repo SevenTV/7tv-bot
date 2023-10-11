@@ -69,6 +69,11 @@ variable "nats_bot_api_subject" {
   default = ""
 }
 
+variable "nats_global_emote_subject" {
+  type = string
+  default = ""
+}
+
 variable "nats_twitch_irc_stream" {
   type    = string
   default = ""

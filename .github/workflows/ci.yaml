@@ -22,6 +22,7 @@ on:
           - bot-api
           - irc-reader
           - oauth
+          - usage-api
           - none
       deploy:
         description: "Which environment to deploy to"
