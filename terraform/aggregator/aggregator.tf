@@ -27,16 +27,17 @@ resource "kubernetes_secret" "app" {
 
   data = {
     "config.yaml" = templatefile("${path.module}/config.template.yaml", {
-      max_workers      = 6
-      nats_consumer    = "irc-stats-aggregator"
-      nats_url         = "nats.database.svc.cluster.local:4222"
-      nats_irc_raw     = var.nats_irc_raw_subject
-      nats_stream      = var.nats_twitch_irc_stream
-      mongo_uri        = var.infra.mongodb_uri
-      mongo_username   = var.infra.mongodb_user_app.username
-      mongo_password   = var.infra.mongodb_user_app.password
-      mongo_database   = var.mongo_bot_database
-      mongo_collection = var.mongo_bot_global_stats_collection
+      max_workers       = 6
+      nats_consumer     = "irc-stats-aggregator"
+      nats_url          = "nats.database.svc.cluster.local:4222"
+      nats_irc_raw      = var.nats_irc_raw_subject
+      nats_topic_emotes = var.nats_emotes_global
+      nats_stream       = var.nats_twitch_irc_stream
+      mongo_uri         = var.infra.mongodb_uri
+      mongo_username    = var.infra.mongodb_user_app.username
+      mongo_password    = var.infra.mongodb_user_app.password
+      mongo_database    = var.mongo_bot_database
+      mongo_collection  = var.mongo_bot_global_stats_collection
     })
   }
 }
@@ -47,7 +48,7 @@ resource "kubernetes_deployment" "app" {
     namespace = data.kubernetes_namespace.app.metadata[0].name
     labels    = {
       k8slens-edit-resource-version = "v1"
-      app = "stats-aggregator"
+      app                           = "stats-aggregator"
     }
   }
 
@@ -79,8 +80,8 @@ resource "kubernetes_deployment" "app" {
 
       spec {
         container {
-          name  = "stats-aggregator"
-          image = replace(var.image_url_template, "#APP", "aggregator")
+          name              = "stats-aggregator"
+          image             = replace(var.image_url_template, "#APP", "aggregator")
           image_pull_policy = "Always"
 
           resources {

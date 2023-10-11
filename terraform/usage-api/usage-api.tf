@@ -64,7 +64,6 @@ resource "kubernetes_ingress_v1" "app" {
     namespace = data.kubernetes_namespace.app.metadata[0].name
     annotations = {
       "kubernetes.io/ingress.class"                         = "nginx"
-      "external-dns.alpha.kubernetes.io/target"             = var.infra.cloudflare_tunnel_hostname.regular
       "external-dns.alpha.kubernetes.io/cloudflare-proxied" = "true"
       "nginx.ingress.kubernetes.io/limit-connections" : "64"
       "nginx.ingress.kubernetes.io/proxy-body-size" : "7m"
@@ -131,7 +130,7 @@ resource "kubernetes_deployment" "app" {
       spec {
         container {
           name              = "stats-usage-api"
-          image             = replace(var.image_url_template, "#APP", "bot-api")
+          image             = replace(var.image_url_template, "#APP", "usage-api")
           image_pull_policy = "Always"
 
           port {

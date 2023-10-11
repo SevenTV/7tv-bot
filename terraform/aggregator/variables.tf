@@ -10,6 +10,11 @@ variable "nats_irc_raw_subject" {
   default = ""
 }
 
+variable "nats_emotes_global" {
+  type    = string
+  default = ""
+}
+
 variable "nats_twitch_irc_stream" {
   type    = string
   default = ""

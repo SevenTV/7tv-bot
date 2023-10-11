@@ -58,17 +58,18 @@ module "aggregator" {
   infra              = local.infra
 
   nats_irc_raw_subject              = var.nats_irc_raw_subject
+  nats_emotes_global                = var.nats_global_emote_subject
   nats_twitch_irc_stream            = var.nats_twitch_irc_stream
   mongo_bot_database                = var.mongo_bot_database
   mongo_bot_global_stats_collection = var.mongo_bot_global_stats_collection
 }
 
 module "usage-api" {
-  source = "./usage-api"
-  image_url_template = local .image_url_template
+  source             = "./usage-api"
+  image_url_template = local.image_url_template
   infra              = local.infra
 
-  nats_emotes_global = var.nats_global_emote_subject
-  mongo_bot_database = var.mongo_bot_database
+  nats_emotes_global                = var.nats_global_emote_subject
+  mongo_bot_database                = var.mongo_bot_database
   mongo_bot_global_stats_collection = var.mongo_bot_global_stats_collection
 }

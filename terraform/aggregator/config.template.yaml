@@ -7,6 +7,7 @@ nats:
   consumer: ${nats_consumer}
   topic:
     raw: ${nats_irc_raw}
+    emotes: ${nats_topic_emotes}
 
 mongo:
   connectionstring: ${mongo_uri}
