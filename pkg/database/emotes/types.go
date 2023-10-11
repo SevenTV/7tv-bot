@@ -13,12 +13,12 @@ var (
 )
 
 type EmoteCount struct {
-	Name      string                     `bson:"name"`
-	EmoteID   primitive.ObjectID         `bson:"emote_id"`
-	Flags     model.ActiveEmoteFlagModel `bson:"flags"`
-	State     []model.EmoteVersionState  `bson:"state,omitempty"`
-	URL       string                     `bson:"url"`
-	CreatedAt time.Time                  `bson:"created_at"`
-	UpdatedAt time.Time                  `bson:"updated_at"`
-	Count     int                        `bson:"count"`
+	Name      string                     `bson:"name" json:"name"`
+	EmoteID   primitive.ObjectID         `bson:"emote_id" json:"emote_id"`
+	Flags     model.ActiveEmoteFlagModel `bson:"flags,omitempty" json:"flags,omitempty"`
+	State     []model.EmoteVersionState  `bson:"state,omitempty" json:"state,omitempty"`
+	URL       string                     `bson:"url" json:"url"`
+	CreatedAt time.Time                  `bson:"created_at" json:"created_at"`
+	UpdatedAt time.Time                  `bson:"updated_at" json:"updated_at"`
+	Count     int                        `bson:"count" json:"count"`
 }
