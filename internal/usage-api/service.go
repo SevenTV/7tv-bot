@@ -35,6 +35,11 @@ func (s *Server) Init() error {
 		Handler: s.router.Router,
 	}
 
+	s.upgrader.CheckOrigin = func(r *http.Request) bool {
+		// TODO: check origin
+		return true
+	}
+
 	var err error
 	s.nc, err = nats.Connect(s.cfg.Nats.URL)
 	if err != nil {
