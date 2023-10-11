@@ -46,3 +46,18 @@ func IncrementEmote(ctx context.Context, emote types.CountedEmote) error {
 
 	return err
 }
+
+func GetTopEmotes(ctx context.Context, limit int64, page int64) ([]EmoteCount, error) {
+	skip := limit * (page - 1)
+	cursor, err := collections.GlobalStats.Find(ctx, bson.D{}, options.Find().SetSort(bson.D{{"count", -1}}).SetLimit(limit).SetSkip(skip))
+	if err != nil {
+		return nil, err
+	}
+
+	var emotes []EmoteCount
+	if err := cursor.All(ctx, &emotes); err != nil {
+		return nil, err
+	}
+
+	return emotes, nil
+}
