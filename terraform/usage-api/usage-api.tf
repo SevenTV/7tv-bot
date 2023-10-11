@@ -52,7 +52,7 @@ resource "kubernetes_service" "app" {
     port {
       name        = "http"
       port        = 7777
-      target_port = "rest"
+      target_port = "http"
       protocol    = "TCP"
     }
   }
@@ -60,7 +60,7 @@ resource "kubernetes_service" "app" {
 
 resource "kubernetes_ingress_v1" "app" {
   metadata {
-    name      = "emote-usage-api"
+    name      = "stats-usage-api"
     namespace = data.kubernetes_namespace.app.metadata[0].name
     annotations = {
       "kubernetes.io/ingress.class"                         = "nginx"
@@ -83,7 +83,7 @@ resource "kubernetes_ingress_v1" "app" {
             service {
               name = kubernetes_service.app.metadata[0].name
               port {
-                name = "rest"
+                name = "http"
               }
             }
           }
