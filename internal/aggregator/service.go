@@ -3,6 +3,7 @@ package aggregator
 import (
 	"context"
 
+	"github.com/nats-io/nats.go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -13,6 +14,7 @@ import (
 
 type Service struct {
 	cfg *config.Config
+	nc  *nats.Conn
 }
 
 func New(cfg *config.Config) *Service {

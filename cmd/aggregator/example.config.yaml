@@ -6,7 +6,8 @@ nats:
   stream: twitchIRC
   consumer: stats-aggregator
   topic:
-    raw: irc.raw.twitch.>
+    raw: irc.raw.twitch
+    emotes: stats.emotes.global
 
 mongo:
   connectionstring: mongodb://username:password@0.0.0.0:27017

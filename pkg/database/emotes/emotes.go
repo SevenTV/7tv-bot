@@ -10,20 +10,14 @@ import (
 	"github.com/seventv/7tv-bot/pkg/types"
 )
 
-func IncrementEmote(ctx context.Context, emote types.CountedEmote) error {
+func IncrementEmote(ctx context.Context, emote types.EmoteCount) error {
+	now := time.Now().UTC()
+	emote.CreatedAt = &now
+	emote.UpdatedAt = &now
 	res, err := collections.GlobalStats.UpdateOne(
 		ctx,
-		bson.D{{"emote_id", emote.Emote.EmoteID}},
-		bson.M{"$setOnInsert": EmoteCount{
-			Name:      emote.Emote.Name,
-			EmoteID:   emote.Emote.EmoteID,
-			Flags:     emote.Emote.Flags,
-			State:     emote.Emote.State,
-			URL:       emote.Emote.URL,
-			CreatedAt: time.Now().UTC(),
-			UpdatedAt: time.Now().UTC(),
-			Count:     emote.Count,
-		}},
+		bson.D{{"emote_id", emote.EmoteID}},
+		bson.M{"$setOnInsert": emote},
 		options.Update().SetUpsert(true))
 	if err != nil {
 		return err
@@ -34,27 +28,27 @@ func IncrementEmote(ctx context.Context, emote types.CountedEmote) error {
 
 	_, err = collections.GlobalStats.UpdateOne(
 		ctx,
-		bson.D{{"emote_id", emote.Emote.EmoteID}},
+		bson.D{{"emote_id", emote.EmoteID}},
 		bson.M{
 			"$inc": bson.M{
 				"count": emote.Count,
 			},
 			"$set": bson.M{
-				"updated_at": time.Now().UTC(),
+				"updated_at": now,
 			},
 		})
 
 	return err
 }
 
-func GetTopEmotes(ctx context.Context, limit int64, page int64) ([]EmoteCount, error) {
+func GetTopEmotes(ctx context.Context, limit int64, page int64) ([]types.EmoteCount, error) {
 	skip := limit * (page - 1)
 	cursor, err := collections.GlobalStats.Find(ctx, bson.D{}, options.Find().SetSort(bson.D{{"count", -1}}).SetLimit(limit).SetSkip(skip))
 	if err != nil {
 		return nil, err
 	}
 
-	var emotes []EmoteCount
+	var emotes []types.EmoteCount
 	if err := cursor.All(ctx, &emotes); err != nil {
 		return nil, err
 	}

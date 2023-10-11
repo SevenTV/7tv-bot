@@ -14,7 +14,7 @@ import (
 	"github.com/seventv/7tv-bot/pkg/types"
 )
 
-func countEmotes(msg *Message) ([]types.CountedEmote, error) {
+func countEmotes(msg *Message) ([]types.EmoteCount, error) {
 	// TODO: personal emotes
 	emotes, err := getGlobalEmotes()
 	if err != nil {
@@ -27,10 +27,17 @@ func countEmotes(msg *Message) ([]types.CountedEmote, error) {
 
 	emotes = append(emotes, channelEmotes...)
 
-	var result []types.CountedEmote
+	var result []types.EmoteCount
 
 	for _, emote := range emotes {
-		counted := types.CountedEmote{Emote: emote}
+		counted := types.EmoteCount{
+			Name:    emote.Name,
+			EmoteID: emote.EmoteID,
+			Flags:   emote.Flags,
+			State:   emote.State,
+			URL:     emote.URL,
+			Count:   0,
+		}
 		for _, word := range msg.MessageWords {
 			if word != emote.Name {
 				continue

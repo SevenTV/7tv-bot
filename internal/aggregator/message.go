@@ -2,6 +2,7 @@ package aggregator
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/nats-io/nats.go"
@@ -32,8 +33,19 @@ func (s *Service) handleMessage(natsMsg *nats.Msg) error {
 		if err != nil {
 			return err
 		}
+
+		var data []byte
+		data, err = json.Marshal(emote)
+		if err != nil {
+			zap.S().Error("couldn't publish emote to NATS: ", err)
+			continue
+		}
+		err = s.nc.Publish(s.cfg.Nats.Topic.Emotes, data)
+		if err != nil {
+			zap.S().Error("couldn't publish emote to NATS: ", err)
+			continue
+		}
 	}
-	// TODO: push counted to NATS for realtime emote display
 
 	return nil
 }

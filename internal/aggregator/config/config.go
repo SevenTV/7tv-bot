@@ -25,7 +25,8 @@ type Config struct {
 		Stream   string
 		Consumer string
 		Topic    struct {
-			Raw string
+			Raw    string
+			Emotes string
 			// provisions support for optional JSON or other parsed format output in the future
 		}
 	}

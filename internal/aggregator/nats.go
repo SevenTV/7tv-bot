@@ -76,6 +76,7 @@ func (s *Service) newJetStream() (nats.JetStreamContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.nc = nc
 	js, err := nc.JetStream()
 	if err != nil {
 		return nil, err
