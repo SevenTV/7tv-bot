@@ -141,11 +141,11 @@ resource "kubernetes_deployment" "app" {
           }
 
           resources {
-            limits {
+            limits = {
               cpu    = "500m"
               memory = "512Mi"
             }
-            requests {
+            requests = {
               cpu    = "10m"
               memory = "64Mi"
             }
