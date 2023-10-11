@@ -7,6 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/gookit/config/v2 v2.2.3
 	github.com/gookit/goutil v0.6.10
+	github.com/gorilla/websocket v1.5.0
 	github.com/nats-io/nats.go v1.28.0
 	github.com/redis/go-redis/v9 v9.0.2
 	github.com/seventv/api v0.0.0-20230725220203-d0d78f67931c
