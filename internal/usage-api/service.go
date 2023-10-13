@@ -21,6 +21,8 @@ type Server struct {
 	router *router.Router
 	nc     *nats.Conn
 
+	emoteStream *Stream
+
 	upgrader websocket.Upgrader
 }
 
@@ -64,6 +66,8 @@ func (s *Server) Init() error {
 		}))
 
 	pubsub.Init()
+	s.emoteStream = newStream()
+	go s.emoteStream.Init()
 	s.natsSubscribe()
 
 	go func() {
