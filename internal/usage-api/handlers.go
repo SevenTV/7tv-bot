@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 
@@ -30,14 +29,16 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getTopEmotes(w http.ResponseWriter, r *http.Request) {
-	limit := chi.URLParam(r, "limit")
+	query := r.URL.Query()
+	limit := query.Get("limit")
 	if limit == "" {
 		limit = "20"
 	}
-	page := chi.URLParam(r, "page")
+	page := query.Get("page")
 	if page == "" {
 		page = "1"
 	}
+
 	lim, err := strconv.Atoi(limit)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
